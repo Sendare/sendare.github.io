@@ -12,7 +12,7 @@ const SHEET_ID =
     "1cvN-hRamw4PBn0HjX3xz8mMl53yl0WoiTtuAOqAMrUY";
 
 const BUSINESS_SHEET_URL =
-    `https://opensheet.elk.sh/${SHEET_ID}/Business`;
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&headers=0`;
 
 const PRODUCTS_SHEET_URL =
     `https://opensheet.elk.sh/${SHEET_ID}/Products`;
@@ -75,6 +75,34 @@ function escapeHTML(value) {
 }
 
 
+function parseGVizBusinessResponse(text) {
+
+    const match =
+        text.match(
+            /google\.visualization\.Query\.setResponse\((.*)\);?\s*$/
+        );
+
+    if (!match) {
+        throw new Error(
+            "Invalid Business sheet response."
+        );
+    }
+
+    const data =
+        JSON.parse(match[1]);
+
+    const rows =
+        data?.table?.rows || [];
+
+    return rows.map(row => ({
+        field:
+            clean(row?.c?.[0]?.v),
+        value:
+            clean(row?.c?.[2]?.v)
+    }));
+}
+
+
 /* =========================================================
    SHEET LOADING
 ========================================================= */
@@ -103,8 +131,13 @@ async function loadSheetData() {
         }
 
 
+        const businessText =
+            await responses[0].text();
+
         const businessRows =
-            await responses[0].json();
+            parseGVizBusinessResponse(
+                businessText
+            );
 
         const productRows =
             await responses[1].json();
