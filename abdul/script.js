@@ -1,193 +1,770 @@
-const SHEET_ID = "1cvN-hRamw4PBn0HjX3xz8mMl53yl0WoiTtuAOqAMrUY";
+/* =========================================================
+   SENDare STOREFRONT
+   Google Sheets powered storefront
+========================================================= */
 
-const businessSheetURL =
+
+/* =========================================================
+   GOOGLE SHEET
+========================================================= */
+
+const SHEET_ID =
+    "1cvN-hRamw4PBn0HjX3xz8mMl53yl0WoiTtuAOqAMrUY";
+
+const BUSINESS_SHEET_URL =
     `https://opensheet.elk.sh/${SHEET_ID}/Business`;
 
-const productsSheetURL =
+const PRODUCTS_SHEET_URL =
     `https://opensheet.elk.sh/${SHEET_ID}/Products`;
+
+
+/* =========================================================
+   APP STATE
+========================================================= */
 
 let business = {};
 let products = [];
 
+let currentProducts = [];
+let currentProductIndex = null;
 
-// ===============================
-// LOAD GOOGLE SHEET DATA
-// ===============================
+
+/* =========================================================
+   SAFE HELPERS
+========================================================= */
+
+function clean(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value).trim();
+}
+
+
+function lower(value) {
+    return clean(value).toLowerCase();
+}
+
+
+function isYes(value) {
+    const valueLower = lower(value);
+
+    return [
+        "yes",
+        "ye",
+        "y",
+        "true",
+        "1"
+    ].includes(valueLower);
+}
+
+
+function hasValue(value) {
+    return clean(value) !== "";
+}
+
+
+function escapeHTML(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* =========================================================
+   SHEET LOADING
+========================================================= */
 
 async function loadSheetData() {
+
+    showPageLoader();
+
     try {
-        const [businessResponse, productsResponse] = await Promise.all([
-            fetch(businessSheetURL),
-            fetch(productsSheetURL)
+
+        const responses = await Promise.all([
+            fetch(BUSINESS_SHEET_URL),
+            fetch(PRODUCTS_SHEET_URL)
         ]);
 
-        if (!businessResponse.ok || !productsResponse.ok) {
-            throw new Error("Unable to fetch Google Sheet");
+        if (!responses[0].ok) {
+            throw new Error(
+                "Business sheet could not be loaded."
+            );
         }
 
-        const businessData = await businessResponse.json();
-        const productsData = await productsResponse.json();
+        if (!responses[1].ok) {
+            throw new Error(
+                "Products sheet could not be loaded."
+            );
+        }
 
-        // Convert Business tab:
-        // field | value
-        // into:
-        // business[field] = value
 
-        business = {};
+        const businessRows =
+            await responses[0].json();
 
-        businessData.forEach(row => {
-            const field = (row.field || "").trim().toLowerCase();
-            const value = row.value || "";
+        const productRows =
+            await responses[1].json();
 
-            if (field) {
-                business[field] = value;
-            }
-        });
 
-        // Products tab
-        products = productsData.map(product => {
-            const cleanedProduct = {};
+        business =
+            parseBusinessSheet(businessRows);
 
-            Object.keys(product).forEach(key => {
-                cleanedProduct[key.trim().toLowerCase()] =
-                    product[key] || "";
-            });
+        products =
+            parseProductsSheet(productRows);
 
-            return cleanedProduct;
-        });
 
         loadBusiness();
+
         loadSocialLinks();
+
         loadCategories();
+
+        setupSearch();
+
+        setupSorting();
+
         renderProducts();
 
+        setupRetry();
+
+        hideProductError();
+
+        hidePageLoader();
+
+
     } catch (error) {
-        console.error("Sheet loading error:", error);
 
-        const productGrid = document.getElementById("product-grid");
+        console.error(
+            "Sendare sheet error:",
+            error
+        );
 
-        if (productGrid) {
-            productGrid.innerHTML = `
-                <div class="empty-state">
-                    <h3>Unable to load products</h3>
-                    <p>Please try again later.</p>
-                </div>
-            `;
-        }
+        showProductError();
+
+        hidePageLoader();
     }
 }
 
 
-// ===============================
-// BUSINESS INFORMATION
-// ===============================
+/* =========================================================
+   BUSINESS SHEET PARSER
+=========================================================
+
+   Expected physical sheet:
+
+   A = field
+   B = blank
+   C = value
+
+   We also support the simpler:
+
+   A = field
+   B = value
+
+   This makes the template more tolerant.
+========================================================= */
+
+function parseBusinessSheet(rows) {
+
+    const result = {};
+
+    if (!Array.isArray(rows)) {
+        return result;
+    }
+
+
+    rows.forEach(row => {
+
+        if (!row || typeof row !== "object") {
+            return;
+        }
+
+
+        const keys =
+            Object.keys(row);
+
+
+        let field = "";
+        let value = "";
+
+
+        /*
+           First try exact field header.
+        */
+
+        const fieldKey =
+            keys.find(
+                key =>
+                    lower(key) === "field"
+            );
+
+
+        if (fieldKey) {
+
+            field =
+                clean(row[fieldKey]);
+
+        }
+
+
+        /*
+           Find value.
+
+           Prefer an actual "value" column.
+           If there isn't one, look for the
+           non-empty column after field.
+        */
+
+        const valueKey =
+            keys.find(
+                key =>
+                    lower(key) === "value"
+            );
+
+
+        if (valueKey) {
+
+            value =
+                clean(row[valueKey]);
+
+        }
+
+
+        /*
+           Support A / blank B / C structure.
+
+           OpenSheet can represent the blank
+           header differently, so inspect the
+           remaining columns.
+        */
+
+        if (!value) {
+
+            const possibleValues =
+                keys
+                    .filter(
+                        key =>
+                            key !== fieldKey
+                    )
+                    .map(
+                        key =>
+                            clean(row[key])
+                    )
+                    .filter(Boolean);
+
+
+            if (possibleValues.length) {
+
+                value =
+                    possibleValues[
+                        possibleValues.length - 1
+                    ];
+            }
+        }
+
+
+        if (field) {
+
+            result[
+                lower(field)
+            ] = value;
+        }
+
+    });
+
+
+    return result;
+}
+
+
+/* =========================================================
+   PRODUCTS SHEET PARSER
+========================================================= */
+
+function parseProductsSheet(rows) {
+
+    if (!Array.isArray(rows)) {
+        return [];
+    }
+
+
+    return rows
+        .filter(row => row && typeof row === "object")
+        .map(row => {
+
+            const product = {};
+
+            Object.keys(row).forEach(key => {
+
+                const normalizedKey =
+                    lower(key);
+
+                product[normalizedKey] =
+                    clean(row[key]);
+
+            });
+
+
+            return product;
+
+        })
+        .filter(product =>
+            hasValue(
+                product["product name"]
+            )
+        );
+}
+
+
+/* =========================================================
+   BUSINESS INFORMATION
+========================================================= */
 
 function loadBusiness() {
 
     const businessName =
-        business["business name"] || "Business";
+        business["business name"] ||
+        "Store";
 
     const logo =
         business["logo"];
 
     const tagline =
-        business["tagline"] || "";
+        business["tagline"];
 
     const description =
-        business["description"] || "";
-
-    const phone =
-        business["phone"] || "";
+        business["description"];
 
     const location =
-        business["location"] || "";
+        business["location"];
 
     const delivery =
-        business["delivery"] || "";
+        business["delivery"];
 
     const openingHours =
-        business["opening hours"] || "";
+        business["opening hours"];
 
     const paymentMethod =
-        business["payment method"] || "";
+        business["payment method"];
+
+    const contactMessage =
+        business["contact message"];
 
     const orderInstruction =
-        business["order instruction"] || "";
+        business["order instruction"];
 
-    // Page title
-    document.title = businessName;
+    const phone =
+        business["phone"];
 
-    // Business name
-    document.querySelectorAll("[data-business-name]").forEach(element => {
-        element.textContent = businessName;
-    });
 
-    // Tagline
-    document.querySelectorAll("[data-tagline]").forEach(element => {
-        element.textContent = tagline;
-    });
+    document.title =
+        `${businessName} | Store`;
 
-    // Description
-    document.querySelectorAll("[data-description]").forEach(element => {
-        element.textContent = description;
-    });
 
-    // Logo
-    document.querySelectorAll("[data-logo]").forEach(element => {
+    setText(
+        "header-business-name",
+        businessName
+    );
 
-        if (logo) {
-            element.src = logo;
-            element.alt = businessName;
+    setText(
+        "header-tagline",
+        tagline
+    );
+
+
+    setText(
+        "hero-business-name",
+        businessName
+    );
+
+    setText(
+        "hero-tagline",
+        tagline
+    );
+
+    setText(
+        "hero-description",
+        description
+    );
+
+
+    setText(
+        "about-business-name",
+        businessName
+    );
+
+    setText(
+        "about-description",
+        description
+    );
+
+
+    setText(
+        "footer-business-name",
+        businessName
+    );
+
+    setText(
+        "footer-business-name-bottom",
+        businessName
+    );
+
+    setText(
+        "footer-tagline",
+        tagline
+    );
+
+
+    setText(
+        "quick-location",
+        location
+    );
+
+    setText(
+        "quick-delivery",
+        delivery
+    );
+
+    setText(
+        "quick-hours",
+        openingHours
+    );
+
+    setText(
+        "quick-payment",
+        paymentMethod
+    );
+
+
+    setText(
+        "detail-location",
+        location
+    );
+
+    setText(
+        "detail-delivery",
+        delivery
+    );
+
+    setText(
+        "detail-payment",
+        paymentMethod
+    );
+
+    setText(
+        "detail-hours",
+        openingHours
+    );
+
+
+    setText(
+        "contact-message",
+        contactMessage ||
+        "We'd love to hear from you."
+    );
+
+
+    setText(
+        "modal-order-instruction",
+        orderInstruction
+    );
+
+
+    setText(
+        "contact-phone-number",
+        phone
+    );
+
+
+    setYear();
+
+
+    /*
+       Only show sections whose data exists.
+    */
+
+    toggleInfoCard(
+        "location",
+        location
+    );
+
+    toggleInfoCard(
+        "delivery",
+        delivery
+    );
+
+    toggleInfoCard(
+        "hours",
+        openingHours
+    );
+
+    toggleInfoCard(
+        "payment",
+        paymentMethod
+    );
+
+
+    toggleElement(
+        "location-card",
+        location
+    );
+
+    toggleElement(
+        "delivery-card",
+        delivery
+    );
+
+    toggleElement(
+        "payment-card",
+        paymentMethod
+    );
+
+    toggleElement(
+        "hours-card",
+        openingHours
+    );
+
+
+    /*
+       Logo
+    */
+
+    if (isValidImageURL(logo)) {
+
+        setImage(
+            "header-logo",
+            logo,
+            businessName
+        );
+
+        setImage(
+            "about-logo",
+            logo,
+            businessName
+        );
+
+        setImage(
+            "footer-logo",
+            logo,
+            businessName
+        );
+
+
+        showElement(
+            "about-logo"
+        );
+
+        hideElement(
+            "about-placeholder"
+        );
+
+
+        /*
+           Use logo as subtle hero background.
+        */
+
+        const hero =
+            document.getElementById("hero");
+
+        if (hero) {
+
+            hero.style.backgroundImage =
+                `
+                linear-gradient(
+                    90deg,
+                    rgba(0,0,0,.72),
+                    rgba(0,0,0,.38),
+                    rgba(0,0,0,.20)
+                ),
+                url("${safeURL(logo)}")
+                `;
         }
-    });
 
-    // Phone
-    document.querySelectorAll("[data-phone]").forEach(element => {
-        element.textContent = phone;
-    });
+    } else {
 
-    // Location
-    document.querySelectorAll("[data-location]").forEach(element => {
-        element.textContent = location;
-    });
+        hideElement(
+            "header-logo"
+        );
 
-    // Delivery
-    document.querySelectorAll("[data-delivery]").forEach(element => {
-        element.textContent = delivery;
-    });
+        hideElement(
+            "about-logo"
+        );
 
-    // Opening hours
-    document.querySelectorAll("[data-opening-hours]").forEach(element => {
-        element.textContent = openingHours;
-    });
+        hideElement(
+            "footer-logo"
+        );
 
-    // Payment method
-    document.querySelectorAll("[data-payment-method]").forEach(element => {
-        element.textContent = paymentMethod;
-    });
-
-    // Order instruction
-    document.querySelectorAll("[data-order-instruction]").forEach(element => {
-        element.textContent = orderInstruction;
-    });
-
-    // Hero background
-    const hero = document.querySelector(".hero");
-
-    if (hero && logo) {
-        hero.style.backgroundImage =
-            `linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url("${logo}")`;
+        showElement(
+            "about-placeholder"
+        );
     }
+
+
+    /*
+       Phone
+    */
+
+    const phoneLink =
+        document.getElementById(
+            "contact-phone"
+        );
+
+    if (phoneLink && phone) {
+
+        phoneLink.href =
+            `tel:${phone}`;
+
+        phoneLink.hidden = false;
+    }
+
+
+    /*
+       Google Maps
+    */
+
+    const maps =
+        business["google maps"];
+
+    const mapsLink =
+        document.getElementById(
+            "google-maps-link"
+        );
+
+    if (
+        mapsLink &&
+        isValidURL(maps)
+    ) {
+
+        mapsLink.href =
+            maps;
+
+        mapsLink.hidden = false;
+    }
+
+
+    /*
+       WhatsApp
+    */
+
+    setupWhatsApp();
 }
 
 
-// ===============================
-// SOCIAL LINKS
-// ===============================
+/* =========================================================
+   WHATSAPP
+========================================================= */
+
+function setupWhatsApp() {
+
+    const whatsapp =
+        business["whatsapp business"] ||
+        business["whatsapp"] ||
+        business["phone"];
+
+
+    if (!whatsapp) {
+        return;
+    }
+
+
+    const url =
+        createWhatsAppLink(
+            whatsapp
+        );
+
+
+    setLink(
+        "header-whatsapp",
+        url
+    );
+
+    setLink(
+        "hero-whatsapp",
+        url
+    );
+
+    setLink(
+        "contact-whatsapp",
+        url
+    );
+
+
+    showElement(
+        "header-whatsapp"
+    );
+
+    showElement(
+        "hero-whatsapp"
+    );
+
+    showElement(
+        "contact-whatsapp"
+    );
+}
+
+
+function createWhatsAppLink(
+    number,
+    message = ""
+) {
+
+    let phone =
+        clean(number).replace(
+            /\D/g,
+            ""
+        );
+
+
+    /*
+       Nigerian local number:
+       08012345678
+       →
+       2348012345678
+    */
+
+    if (
+        phone.startsWith("0") &&
+        phone.length >= 10
+    ) {
+
+        phone =
+            "234" +
+            phone.substring(1);
+    }
+
+
+    /*
+       10 digit Nigerian number
+    */
+
+    else if (
+        phone.length === 10
+    ) {
+
+        phone =
+            "234" +
+            phone;
+    }
+
+
+    return (
+        `https://wa.me/${phone}` +
+        `?text=${encodeURIComponent(message)}`
+    );
+}
+
+
+/* =========================================================
+   SOCIAL LINKS
+========================================================= */
 
 function loadSocialLinks() {
 
-    const socialFields = [
+    const platforms = [
         "instagram",
         "facebook",
         "tiktok",
@@ -196,137 +773,219 @@ function loadSocialLinks() {
         "x"
     ];
 
-    socialFields.forEach(platform => {
 
-        const value = business[platform];
+    const socialContainer =
+        document.getElementById(
+            "social-links"
+        );
 
-        if (!value) return;
+    const footerContainer =
+        document.getElementById(
+            "footer-socials"
+        );
 
-        document.querySelectorAll(
-            `[data-social="${platform}"]`
-        ).forEach(link => {
 
-            link.href = value;
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-        });
+    if (socialContainer) {
+        socialContainer.innerHTML = "";
+    }
+
+    if (footerContainer) {
+        footerContainer.innerHTML = "";
+    }
+
+
+    platforms.forEach(platform => {
+
+        const value =
+            business[platform];
+
+
+        if (!hasValue(value)) {
+            return;
+        }
+
+
+        /*
+           Placeholder values such as
+           "hshs" should not become broken
+           external links.
+        */
+
+        if (!isValidURL(value)) {
+            return;
+        }
+
+
+        const label =
+            platform === "x"
+                ? "X"
+                : capitalize(platform);
+
+
+        if (socialContainer) {
+
+            socialContainer.innerHTML += `
+                <a
+                    class="social-link"
+                    href="${safeURL(value)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    ${escapeHTML(label)}
+                </a>
+            `;
+        }
+
+
+        if (footerContainer) {
+
+            footerContainer.innerHTML += `
+                <a
+                    href="${safeURL(value)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    ${escapeHTML(label)}
+                </a>
+            `;
+        }
+
     });
-
-    // WhatsApp
-    const whatsapp =
-        business["whatsapp business"] ||
-        business["whatsapp"] ||
-        business["phone"];
-
-    if (whatsapp) {
-
-        const whatsappURL =
-            createWhatsAppLink(whatsapp);
-
-        document.querySelectorAll("[data-whatsapp]").forEach(link => {
-            link.href = whatsappURL;
-            link.target = "_blank";
-        });
-    }
-
-    // Google Maps
-    if (business["google maps"]) {
-
-        document.querySelectorAll("[data-google-maps]").forEach(link => {
-            link.href = business["google maps"];
-            link.target = "_blank";
-            link.rel = "noopener noreferrer";
-        });
-    }
 }
 
 
-// ===============================
-// WHATSAPP
-// ===============================
-
-function createWhatsAppLink(number, message = "") {
-
-    let phone = String(number).replace(/\D/g, "");
-
-    // Nigerian local number:
-    // 08147371302 → 2348147371302
-
-    if (phone.startsWith("0")) {
-        phone = "234" + phone.substring(1);
-    }
-
-    // 8147371302 → 2348147371302
-    else if (phone.length === 10) {
-        phone = "234" + phone;
-    }
-
-    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-}
-
-
-// ===============================
-// CATEGORIES
-// ===============================
+/* =========================================================
+   CATEGORIES
+========================================================= */
 
 function loadCategories() {
 
-    const categories = [
-        ...new Set(
-            products
-                .map(product => product["category"])
-                .filter(Boolean)
-        )
-    ];
+    const container =
+        document.getElementById(
+            "category-filters"
+        );
 
-    const categoryContainer =
-        document.getElementById("category-filters");
 
-    if (!categoryContainer) return;
+    if (!container) {
+        return;
+    }
 
-    categoryContainer.innerHTML = `
-        <button class="category-btn active" data-category="all">
-            All
-        </button>
-    `;
+
+    const categories =
+        [
+            ...new Set(
+                products
+                    .map(
+                        product =>
+                            clean(
+                                product["category"]
+                            )
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+
+    container.innerHTML = "";
+
+
+    addCategoryButton(
+        container,
+        "all",
+        "All",
+        true
+    );
+
 
     categories.forEach(category => {
 
-        categoryContainer.innerHTML += `
-            <button
-                class="category-btn"
-                data-category="${escapeHTML(category)}"
-            >
-                ${escapeHTML(category)}
-            </button>
-        `;
+        addCategoryButton(
+            container,
+            category,
+            category,
+            false
+        );
+
     });
 
-    categoryContainer
-        .querySelectorAll(".category-btn")
+
+    container
+        .querySelectorAll(
+            ".category-btn"
+        )
         .forEach(button => {
 
-            button.addEventListener("click", () => {
+            button.addEventListener(
+                "click",
+                () => {
 
-                categoryContainer
-                    .querySelectorAll(".category-btn")
-                    .forEach(btn =>
-                        btn.classList.remove("active")
+                    container
+                        .querySelectorAll(
+                            ".category-btn"
+                        )
+                        .forEach(
+                            item =>
+                                item.classList
+                                    .remove(
+                                        "active"
+                                    )
+                        );
+
+
+                    button.classList.add(
+                        "active"
                     );
 
-                button.classList.add("active");
 
-                renderProducts(
-                    button.dataset.category
-                );
-            });
+                    renderProducts(
+                        button.dataset.category
+                    );
+                }
+            );
+
         });
 }
 
 
-// ===============================
-// PRODUCT IMAGES
-// ===============================
+function addCategoryButton(
+    container,
+    value,
+    label,
+    active
+) {
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.type =
+        "button";
+
+    button.className =
+        active
+            ? "category-btn active"
+            : "category-btn";
+
+
+    button.dataset.category =
+        value;
+
+
+    button.textContent =
+        label;
+
+
+    container.appendChild(
+        button
+    );
+}
+
+
+/* =========================================================
+   PRODUCT IMAGES
+========================================================= */
 
 function getProductImages(product) {
 
@@ -335,99 +994,378 @@ function getProductImages(product) {
         product["img2"],
         product["img3"],
         product["img4"]
-    ].filter(Boolean);
+    ]
+        .map(clean)
+        .filter(isValidImageURL);
 }
 
 
-// ===============================
-// PRICE
-// ===============================
+/* =========================================================
+   PRODUCT PRICE
+========================================================= */
 
-function formatPrice(price) {
-
-    if (!price) return "";
+function getCurrency() {
 
     const currency =
-        business["currency"] || "Naira";
+        business["currency"];
 
-    const value =
-        Number(String(price).replace(/,/g, ""));
 
-    if (Number.isNaN(value)) {
-        return `${currency} ${price}`;
+    if (!currency) {
+        return "₦";
     }
 
-    return `${currency} ${value.toLocaleString()}`;
+
+    const first =
+        currency
+            .split(",")[0]
+            .trim()
+            .toLowerCase();
+
+
+    const symbols = {
+
+        "naira": "₦",
+        "ngn": "₦",
+
+        "dollar": "$",
+        "usd": "$",
+
+        "riy​al": "﷼",
+        "riyal": "﷼",
+        "sar": "﷼"
+
+    };
+
+
+    return (
+        symbols[first] ||
+        first ||
+        "₦"
+    );
 }
 
 
-// ===============================
-// PRODUCT CARD
-// ===============================
+function formatPrice(value) {
 
-function createProductCard(product, index) {
+    const raw =
+        clean(value);
+
+
+    if (!raw) {
+        return "";
+    }
+
+
+    const number =
+        Number(
+            raw.replace(
+                /,/g,
+                ""
+            )
+        );
+
+
+    if (
+        Number.isNaN(number)
+    ) {
+
+        return escapeHTML(
+            raw
+        );
+    }
+
+
+    return (
+        `${getCurrency()}` +
+        `${number.toLocaleString()}`
+    );
+}
+
+
+/* =========================================================
+   PRODUCT RENDERING
+========================================================= */
+
+function renderProducts(
+    category = "all"
+) {
+
+    const grid =
+        document.getElementById(
+            "product-grid"
+        );
+
+
+    if (!grid) {
+        return;
+    }
+
+
+    const searchInput =
+        document.getElementById(
+            "product-search"
+        );
+
+
+    const search =
+        lower(
+            searchInput
+                ? searchInput.value
+                : ""
+        );
+
+
+    currentProducts =
+        products.filter(product => {
+
+            const productCategory =
+                lower(
+                    product["category"]
+                );
+
+
+            const name =
+                lower(
+                    product["product name"]
+                );
+
+
+            const description =
+                lower(
+                    product["description"]
+                );
+
+
+            const matchesCategory =
+                category === "all" ||
+                productCategory ===
+                    lower(category);
+
+
+            const matchesSearch =
+                !search ||
+                name.includes(search) ||
+                description.includes(search) ||
+                productCategory.includes(search);
+
+
+            return (
+                matchesCategory &&
+                matchesSearch
+            );
+        });
+
+
+    updateProductCount(
+        currentProducts.length
+    );
+
+
+    if (!currentProducts.length) {
+
+        grid.innerHTML = "";
+
+        showElement(
+            "products-empty"
+        );
+
+        return;
+    }
+
+
+    hideElement(
+        "products-empty"
+    );
+
+
+    grid.innerHTML =
+        currentProducts
+            .map(
+                (
+                    product,
+                    index
+                ) =>
+                    createProductCard(
+                        product,
+                        index
+                    )
+            )
+            .join("");
+
+
+    /*
+       Lazy image error handling.
+    */
+
+    grid
+        .querySelectorAll(
+            "img"
+        )
+        .forEach(
+            img => {
+
+                img.addEventListener(
+                    "error",
+                    () => {
+
+                        img.src =
+                            createPlaceholderImage();
+
+                    },
+                    {
+                        once: true
+                    }
+                );
+
+            }
+        );
+}
+
+
+/* =========================================================
+   PRODUCT CARD
+========================================================= */
+
+function createProductCard(
+    product,
+    displayIndex
+) {
 
     const images =
-        getProductImages(product);
+        getProductImages(
+            product
+        );
+
 
     const image =
         images[0] ||
-        "https://via.placeholder.com/600x700?text=No+Image";
+        createPlaceholderImage();
+
 
     const name =
-        product["product name"] || "Product";
+        product["product name"] ||
+        "Product";
+
+
+    const category =
+        product["category"];
+
 
     const price =
         product["price"];
 
+
     const oldPrice =
         product["old price"];
 
+
     const available =
-        String(product["available"]).toLowerCase() === "yes";
+        isYes(
+            product["available"]
+        );
+
 
     const featured =
-        String(product["featured"]).toLowerCase() === "yes";
+        isYes(
+            product["featured"]
+        );
+
 
     const newArrival =
-        String(product["new arrival"]).toLowerCase() === "yes";
+        isYes(
+            product["new arrival"]
+        );
+
 
     let badges = "";
 
+
     if (featured) {
-        badges += `<span class="product-badge">Featured</span>`;
+
+        badges += `
+            <span class="product-badge">
+                Featured
+            </span>
+        `;
     }
+
 
     if (newArrival) {
-        badges += `<span class="product-badge">New</span>`;
+
+        badges += `
+            <span class="product-badge">
+                New
+            </span>
+        `;
     }
 
+
     if (!available) {
-        badges += `<span class="product-badge">Unavailable</span>`;
+
+        badges += `
+            <span class="product-badge">
+                Unavailable
+            </span>
+        `;
     }
+
 
     let oldPriceHTML = "";
 
+
+    const numericPrice =
+        Number(
+            clean(price)
+                .replace(/,/g, "")
+        );
+
+
+    const numericOldPrice =
+        Number(
+            clean(oldPrice)
+                .replace(/,/g, "")
+        );
+
+
     if (
         oldPrice &&
-        Number(oldPrice) > Number(price)
+        !Number.isNaN(
+            numericOldPrice
+        ) &&
+        !Number.isNaN(
+            numericPrice
+        ) &&
+        numericOldPrice >
+            numericPrice
     ) {
-        oldPriceHTML =
-            `<del>${formatPrice(oldPrice)}</del>`;
+
+        oldPriceHTML = `
+            <del>
+                ${formatPrice(oldPrice)}
+            </del>
+        `;
     }
+
+
+    /*
+       Store the actual product in a
+       safe state array rather than putting
+       product data directly into onclick.
+    */
 
     return `
         <article
             class="product-card"
-            data-product-index="${index}"
+            data-product-index="${displayIndex}"
         >
 
             <div class="product-image">
 
                 <img
-                    src="${escapeHTML(image)}"
+                    src="${safeURL(image)}"
                     alt="${escapeHTML(name)}"
                     loading="lazy"
+                    decoding="async"
                 >
 
                 <div class="product-badges">
@@ -436,15 +1374,19 @@ function createProductCard(product, index) {
 
             </div>
 
+
             <div class="product-content">
 
                 <div class="product-category">
-                    ${escapeHTML(product["category"] || "")}
+                    ${escapeHTML(
+                        category || ""
+                    )}
                 </div>
 
                 <h3>
                     ${escapeHTML(name)}
                 </h3>
+
 
                 <div class="product-price">
 
@@ -456,9 +1398,11 @@ function createProductCard(product, index) {
 
                 </div>
 
+
                 <button
                     class="view-product"
-                    onclick="openProduct(${index})"
+                    type="button"
+                    data-open-product="${displayIndex}"
                 >
                     View Product
                 </button>
@@ -470,380 +1414,1347 @@ function createProductCard(product, index) {
 }
 
 
-// ===============================
-// RENDER PRODUCTS
-// ===============================
+/* =========================================================
+   PRODUCT COUNT
+========================================================= */
 
-function renderProducts(category = "all") {
+function updateProductCount(
+    count
+) {
 
-    const productGrid =
-        document.getElementById("product-grid");
+    const element =
+        document.getElementById(
+            "product-count"
+        );
 
-    if (!productGrid) return;
 
-    let filteredProducts = [...products];
-
-    if (category !== "all") {
-
-        filteredProducts =
-            filteredProducts.filter(product =>
-                String(product["category"])
-                    .toLowerCase() ===
-                String(category).toLowerCase()
-            );
-    }
-
-    if (!filteredProducts.length) {
-
-        productGrid.innerHTML = `
-            <div class="empty-state">
-                <h3>No products found</h3>
-                <p>There are no products in this category.</p>
-            </div>
-        `;
-
+    if (!element) {
         return;
     }
 
-    productGrid.innerHTML =
-        filteredProducts
-            .map(product => {
 
-                const originalIndex =
-                    products.indexOf(product);
-
-                return createProductCard(
-                    product,
-                    originalIndex
-                );
-            })
-            .join("");
-
-    // Sort control
-    const sortSelect =
-        document.getElementById("sort-products");
-
-    if (sortSelect) {
-
-        sortSelect.onchange = () => {
-
-            const value =
-                sortSelect.value;
-
-            let sorted =
-                [...filteredProducts];
-
-            if (value === "price-low") {
-
-                sorted.sort(
-                    (a, b) =>
-                        Number(a["price"]) -
-                        Number(b["price"])
-                );
-            }
-
-            if (value === "price-high") {
-
-                sorted.sort(
-                    (a, b) =>
-                        Number(b["price"]) -
-                        Number(a["price"])
-                );
-            }
-
-            if (value === "new") {
-
-                sorted.sort(
-                    (a, b) =>
-                        isYes(b["new arrival"]) -
-                        isYes(a["new arrival"])
-                );
-            }
-
-            productGrid.innerHTML =
-                sorted
-                    .map(product =>
-                        createProductCard(
-                            product,
-                            products.indexOf(product)
-                        )
-                    )
-                    .join("");
-        };
-    }
+    element.textContent =
+        `${count} ${
+            count === 1
+                ? "product"
+                : "products"
+        }`;
 }
 
 
-// ===============================
-// PRODUCT MODAL
-// ===============================
+/* =========================================================
+   PRODUCT MODAL
+========================================================= */
 
-function openProduct(index) {
+function openProduct(
+    displayIndex
+) {
 
     const product =
-        products[index];
+        currentProducts[
+            Number(displayIndex)
+        ];
 
-    if (!product) return;
+
+    if (!product) {
+        return;
+    }
+
+
+    currentProductIndex =
+        Number(displayIndex);
+
 
     const modal =
-        document.getElementById("product-modal");
+        document.getElementById(
+            "product-modal"
+        );
 
-    if (!modal) return;
+
+    if (!modal) {
+        return;
+    }
+
 
     const images =
-        getProductImages(product);
+        getProductImages(
+            product
+        );
 
-    const mainImage =
-        document.getElementById("modal-main-image");
 
-    const thumbnails =
-        document.getElementById("modal-thumbnails");
+    setText(
+        "modal-title",
+        product["product name"]
+    );
 
-    const name =
-        document.getElementById("modal-title");
 
-    const price =
-        document.getElementById("modal-price");
+    setText(
+        "modal-category",
+        product["category"]
+    );
+
+
+    setText(
+        "modal-price",
+        formatPrice(
+            product["price"]
+        )
+    );
+
 
     const oldPrice =
-        document.getElementById("modal-old-price");
+        clean(
+            product["old price"]
+        );
 
-    const description =
-        document.getElementById("modal-description");
 
-    const category =
-        document.getElementById("modal-category");
+    const currentPrice =
+        Number(
+            clean(
+                product["price"]
+            ).replace(/,/g, "")
+        );
 
-    const colour =
-        document.getElementById("modal-colour");
 
-    const sizes =
-        document.getElementById("modal-sizes");
+    const previousPrice =
+        Number(
+            oldPrice.replace(
+                /,/g,
+                ""
+            )
+        );
 
-    const material =
-        document.getElementById("modal-material");
+
+    const oldPriceElement =
+        document.getElementById(
+            "modal-old-price"
+        );
+
+
+    if (
+        oldPriceElement &&
+        oldPrice &&
+        !Number.isNaN(
+            previousPrice
+        ) &&
+        !Number.isNaN(
+            currentPrice
+        ) &&
+        previousPrice >
+            currentPrice
+    ) {
+
+        oldPriceElement.textContent =
+            formatPrice(
+                oldPrice
+            );
+
+        oldPriceElement.hidden =
+            false;
+
+    } else if (oldPriceElement) {
+
+        oldPriceElement.textContent =
+            "";
+
+        oldPriceElement.hidden =
+            true;
+    }
+
+
+    setText(
+        "modal-description",
+        product["description"]
+    );
+
+
+    setText(
+        "modal-colour",
+        product["colour"]
+    );
+
+
+    setText(
+        "modal-sizes",
+        product["sizes"]
+    );
+
+
+    setText(
+        "modal-material",
+        product["material"]
+    );
+
+
+    /*
+       Show/hide individual details.
+    */
+
+    toggleModalDetail(
+        "colour",
+        product["colour"]
+    );
+
+    toggleModalDetail(
+        "sizes",
+        product["sizes"]
+    );
+
+    toggleModalDetail(
+        "material",
+        product["material"]
+    );
+
+
+    /*
+       Stock
+    */
+
+    const available =
+        isYes(
+            product["available"]
+        );
+
 
     const stock =
-        document.getElementById("modal-stock");
+        product["stock"];
 
-    // Main information
 
-    if (name) {
-        name.textContent =
-            product["product name"] || "";
-    }
+    const stockText =
+        available
+            ? (
+                stock
+                    ? `In stock: ${stock}`
+                    : "Available"
+            )
+            : "Currently unavailable";
 
-    if (price) {
-        price.textContent =
-            formatPrice(product["price"]);
-    }
 
-    if (oldPrice) {
+    setText(
+        "modal-stock",
+        stockText
+    );
+
+
+    toggleModalDetail(
+        "stock",
+        true
+    );
+
+
+    /*
+       Badges
+    */
+
+    const badges =
+        document.getElementById(
+            "modal-badges"
+        );
+
+
+    if (badges) {
+
+        badges.innerHTML = "";
+
 
         if (
-            product["old price"] &&
-            Number(product["old price"]) >
-            Number(product["price"])
+            isYes(
+                product["featured"]
+            )
         ) {
-            oldPrice.textContent =
-                formatPrice(product["old price"]);
-        } else {
-            oldPrice.textContent = "";
+
+            badges.innerHTML += `
+                <span class="modal-badge">
+                    Featured
+                </span>
+            `;
+        }
+
+
+        if (
+            isYes(
+                product["new arrival"]
+            )
+        ) {
+
+            badges.innerHTML += `
+                <span class="modal-badge">
+                    New Arrival
+                </span>
+            `;
+        }
+
+
+        if (!available) {
+
+            badges.innerHTML += `
+                <span class="modal-badge">
+                    Unavailable
+                </span>
+            `;
         }
     }
 
-    if (description) {
-        description.textContent =
-            product["description"] || "";
-    }
 
-    if (category) {
-        category.textContent =
-            product["category"] || "";
-    }
+    /*
+       Main image
+    */
 
-    if (colour) {
-        colour.textContent =
-            product["colour"] || "";
-    }
+    setModalMainImage(
+        images[0] ||
+        createPlaceholderImage(),
+        product["product name"]
+    );
 
-    if (sizes) {
-        sizes.textContent =
-            product["sizes"] || "";
-    }
 
-    if (material) {
-        material.textContent =
-            product["material"] || "";
-    }
+    /*
+       Thumbnails
+    */
 
-    if (stock) {
+    renderModalThumbnails(
+        images,
+        product["product name"]
+    );
 
-        const available =
-            isYes(product["available"]);
 
-        stock.textContent =
-            available
-                ? `In stock: ${product["stock"] || ""}`
-                : "Currently unavailable";
-    }
+    /*
+       WhatsApp order
+    */
 
-    // Main image
+    const whatsapp =
+        business["whatsapp business"] ||
+        business["whatsapp"] ||
+        business["phone"];
 
-    if (mainImage) {
-
-        mainImage.src =
-            images[0] ||
-            "https://via.placeholder.com/600x700?text=No+Image";
-
-        mainImage.alt =
-            product["product name"] || "Product";
-    }
-
-    // Thumbnails
-
-    if (thumbnails) {
-
-        thumbnails.innerHTML = "";
-
-        images.forEach((image, imageIndex) => {
-
-            const thumbnail =
-                document.createElement("img");
-
-            thumbnail.src = image;
-            thumbnail.alt =
-                `${product["product name"] || "Product"} ${imageIndex + 1}`;
-
-            thumbnail.addEventListener("click", () => {
-
-                if (mainImage) {
-                    mainImage.src = image;
-                }
-            });
-
-            thumbnails.appendChild(thumbnail);
-        });
-    }
-
-    // WhatsApp order button
 
     const orderButton =
-        document.getElementById("modal-whatsapp");
+        document.getElementById(
+            "modal-whatsapp"
+        );
 
-    if (orderButton) {
 
-        const whatsapp =
-            business["whatsapp business"] ||
-            business["whatsapp"] ||
-            business["phone"];
+    if (
+        orderButton &&
+        whatsapp &&
+        available
+    ) {
 
-        if (whatsapp) {
+        const message =
+            `Hello, I want to order ${product["product name"]}`;
 
-            const message =
-                `Hello, I want to order ${product["product name"]}`;
 
-            orderButton.href =
-                createWhatsAppLink(
-                    whatsapp,
-                    message
-                );
+        orderButton.href =
+            createWhatsAppLink(
+                whatsapp,
+                message
+            );
 
-            orderButton.target = "_blank";
-        }
+
+        orderButton.hidden =
+            false;
+
+    } else if (orderButton) {
+
+        orderButton.hidden =
+            true;
     }
 
-    modal.classList.add("active");
 
-    document.body.classList.add("modal-open");
+    modal.hidden = false;
+
+    document.body.classList.add(
+        "modal-open"
+    );
+
+
+    requestAnimationFrame(
+        () => {
+
+            modal.classList.add(
+                "active"
+            );
+        }
+    );
 }
 
-
-// ===============================
-// CLOSE MODAL
-// ===============================
 
 function closeProduct() {
 
     const modal =
-        document.getElementById("product-modal");
+        document.getElementById(
+            "product-modal"
+        );
 
-    if (!modal) return;
 
-    modal.classList.remove("active");
+    if (!modal) {
+        return;
+    }
 
-    document.body.classList.remove("modal-open");
+
+    modal.classList.remove(
+        "active"
+    );
+
+
+    document.body.classList.remove(
+        "modal-open"
+    );
+
+
+    setTimeout(
+        () => {
+
+            modal.hidden =
+                true;
+
+        },
+        300
+    );
 }
 
 
-// Close when clicking outside modal
+/* =========================================================
+   MODAL MAIN IMAGE
+========================================================= */
 
-document.addEventListener("click", event => {
+function setModalMainImage(
+    src,
+    alt
+) {
 
-    const modal =
-        document.getElementById("product-modal");
+    const image =
+        document.getElementById(
+            "modal-main-image"
+        );
 
-    if (
-        modal &&
-        event.target === modal
-    ) {
-        closeProduct();
+
+    const loader =
+        document.getElementById(
+            "modal-image-loader"
+        );
+
+
+    if (!image) {
+        return;
     }
-});
 
 
-// ESC key
+    if (loader) {
 
-document.addEventListener("keydown", event => {
-
-    if (event.key === "Escape") {
-        closeProduct();
+        loader.classList.remove(
+            "loaded"
+        );
     }
-});
 
 
-// ===============================
-// MOBILE MENU
-// ===============================
+    image.onload = () => {
 
-document.addEventListener("DOMContentLoaded", () => {
+        if (loader) {
 
-    const menuButton =
-        document.getElementById("menu-btn");
+            loader.classList.add(
+                "loaded"
+            );
+        }
+    };
+
+
+    image.onerror = () => {
+
+        image.src =
+            createPlaceholderImage();
+
+
+        if (loader) {
+
+            loader.classList.add(
+                "loaded"
+            );
+        }
+    };
+
+
+    image.alt =
+        alt || "Product";
+
+
+    image.src =
+        src;
+}
+
+
+/* =========================================================
+   MODAL THUMBNAILS
+========================================================= */
+
+function renderModalThumbnails(
+    images,
+    productName
+) {
+
+    const container =
+        document.getElementById(
+            "modal-thumbnails"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = "";
+
+
+    /*
+       No thumbnails needed for a product
+       with zero/one image.
+    */
+
+    if (images.length <= 1) {
+        return;
+    }
+
+
+    images.forEach(
+        (
+            image,
+            index
+        ) => {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.type =
+                "button";
+
+
+            button.className =
+                index === 0
+                    ? "product-thumbnail active"
+                    : "product-thumbnail";
+
+
+            button.setAttribute(
+                "aria-label",
+                `View image ${index + 1}`
+            );
+
+
+            const img =
+                document.createElement(
+                    "img"
+                );
+
+
+            img.src =
+                image;
+
+            img.alt =
+                `${productName || "Product"} image ${index + 1}`;
+
+            img.loading =
+                "lazy";
+
+            img.decoding =
+                "async";
+
+
+            img.addEventListener(
+                "error",
+                () => {
+
+                    img.src =
+                        createPlaceholderImage();
+                },
+                {
+                    once: true
+                }
+            );
+
+
+            button.appendChild(
+                img
+            );
+
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    container
+                        .querySelectorAll(
+                            ".product-thumbnail"
+                        )
+                        .forEach(
+                            item =>
+                                item.classList
+                                    .remove(
+                                        "active"
+                                    )
+                        );
+
+
+                    button.classList.add(
+                        "active"
+                    );
+
+
+                    setModalMainImage(
+                        image,
+                        productName
+                    );
+                }
+            );
+
+
+            container.appendChild(
+                button
+            );
+
+        }
+    );
+}
+
+
+/* =========================================================
+   SEARCH
+========================================================= */
+
+function setupSearch() {
+
+    const input =
+        document.getElementById(
+            "product-search"
+        );
+
+
+    if (!input) {
+        return;
+    }
+
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            const activeButton =
+                document.querySelector(
+                    ".category-btn.active"
+                );
+
+
+            const category =
+                activeButton
+                    ? activeButton.dataset.category
+                    : "all";
+
+
+            renderProducts(
+                category
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   SORTING
+========================================================= */
+
+function setupSorting() {
+
+    const select =
+        document.getElementById(
+            "sort-products"
+        );
+
+
+    if (!select) {
+        return;
+    }
+
+
+    select.addEventListener(
+        "change",
+        () => {
+
+            sortCurrentProducts(
+                select.value
+            );
+        }
+    );
+}
+
+
+function sortCurrentProducts(
+    sort
+) {
+
+    const grid =
+        document.getElementById(
+            "product-grid"
+        );
+
+
+    if (!grid) {
+        return;
+    }
+
+
+    let sorted =
+        [...currentProducts];
+
+
+    if (sort === "price-low") {
+
+        sorted.sort(
+            (a, b) =>
+                numericValue(
+                    a["price"]
+                ) -
+                numericValue(
+                    b["price"]
+                )
+        );
+    }
+
+
+    if (sort === "price-high") {
+
+        sorted.sort(
+            (a, b) =>
+                numericValue(
+                    b["price"]
+                ) -
+                numericValue(
+                    a["price"]
+                )
+        );
+    }
+
+
+    if (sort === "new") {
+
+        sorted.sort(
+            (a, b) =>
+                Number(
+                    isYes(
+                        b["new arrival"]
+                    )
+                ) -
+                Number(
+                    isYes(
+                        a["new arrival"]
+                    )
+                )
+        );
+    }
+
+
+    currentProducts =
+        sorted;
+
+
+    grid.innerHTML =
+        sorted
+            .map(
+                (
+                    product,
+                    index
+                ) =>
+                    createProductCard(
+                        product,
+                        index
+                    )
+            )
+            .join("");
+}
+
+
+function numericValue(
+    value
+) {
+
+    const number =
+        Number(
+            clean(value)
+                .replace(
+                    /,/g,
+                    ""
+                )
+        );
+
+
+    return Number.isNaN(
+        number
+    )
+        ? 0
+        : number;
+}
+
+
+/* =========================================================
+   EVENT DELEGATION
+========================================================= */
+
+document.addEventListener(
+    "click",
+    event => {
+
+        const productButton =
+            event.target.closest(
+                "[data-open-product]"
+            );
+
+
+        if (productButton) {
+
+            openProduct(
+                productButton.dataset
+                    .openProduct
+            );
+
+            return;
+        }
+
+
+        /*
+           Close modal when clicking
+           the backdrop.
+        */
+
+        if (
+            event.target.classList
+                .contains(
+                    "modal-backdrop"
+                )
+        ) {
+
+            closeProduct();
+        }
+
+    }
+);
+
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
+
+function setupMobileMenu() {
+
+    const button =
+        document.getElementById(
+            "menu-btn"
+        );
+
 
     const nav =
-        document.querySelector(".nav-links");
+        document.getElementById(
+            "main-nav"
+        );
 
-    if (menuButton && nav) {
 
-        menuButton.addEventListener("click", () => {
-            nav.classList.toggle("active");
-        });
+    if (!button || !nav) {
+        return;
     }
 
-    // Load everything from Google Sheets
-    loadSheetData();
-});
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            const active =
+                nav.classList.toggle(
+                    "active"
+                );
 
 
-// ===============================
-// HELPERS
-// ===============================
+            button.setAttribute(
+                "aria-expanded",
+                String(active)
+            );
+        }
+    );
 
-function isYes(value) {
 
-    return String(value)
-        .trim()
-        .toLowerCase() === "yes";
+    nav.querySelectorAll(
+        "a"
+    ).forEach(
+        link => {
+
+            link.addEventListener(
+                "click",
+                () => {
+
+                    nav.classList.remove(
+                        "active"
+                    );
+
+                    button.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+                }
+            );
+
+        }
+    );
 }
 
 
-function escapeHTML(value) {
+/* =========================================================
+   RETRY
+========================================================= */
 
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+function setupRetry() {
+
+    const button =
+        document.getElementById(
+            "retry-products"
+        );
+
+
+    if (!button) {
+        return;
+    }
+
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            hideProductError();
+
+            loadSheetData();
+        }
+    );
 }
+
+
+function showProductError() {
+
+    const grid =
+        document.getElementById(
+            "product-grid"
+        );
+
+
+    if (grid) {
+        grid.innerHTML = "";
+    }
+
+
+    showElement(
+        "products-error"
+    );
+}
+
+
+function hideProductError() {
+
+    hideElement(
+        "products-error"
+    );
+}
+
+
+/* =========================================================
+   PAGE LOADER
+========================================================= */
+
+function showPageLoader() {
+
+    const loader =
+        document.getElementById(
+            "page-loader"
+        );
+
+
+    if (!loader) {
+        return;
+    }
+
+
+    loader.classList.remove(
+        "loaded"
+    );
+}
+
+
+function hidePageLoader() {
+
+    const loader =
+        document.getElementById(
+            "page-loader"
+        );
+
+
+    if (!loader) {
+        return;
+    }
+
+
+    loader.classList.add(
+        "loaded"
+    );
+}
+
+
+/* =========================================================
+   DOM HELPERS
+========================================================= */
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.textContent =
+        clean(value);
+}
+
+
+function setLink(
+    id,
+    url
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.href =
+        url;
+}
+
+
+function setImage(
+    id,
+    src,
+    alt
+) {
+
+    const image =
+        document.getElementById(
+            id
+        );
+
+
+    if (!image) {
+        return;
+    }
+
+
+    image.src =
+        src;
+
+
+    image.alt =
+        alt || "Business";
+}
+
+
+function showElement(
+    id
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+        element.hidden =
+            false;
+    }
+}
+
+
+function hideElement(
+    id
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+        element.hidden =
+            true;
+    }
+}
+
+
+function toggleElement(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.hidden =
+        !hasValue(value);
+}
+
+
+function toggleInfoCard(
+    type,
+    value
+) {
+
+    const card =
+        document.querySelector(
+            `[data-info-card="${type}"]`
+        );
+
+
+    if (!card) {
+        return;
+    }
+
+
+    card.hidden =
+        !hasValue(value);
+}
+
+
+function toggleModalDetail(
+    type,
+    value
+) {
+
+    const element =
+        document.querySelector(
+            `[data-detail="${type}"]`
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    element.hidden =
+        !hasValue(value);
+}
+
+
+function setYear() {
+
+    const year =
+        document.getElementById(
+            "footer-year"
+        );
+
+
+    if (year) {
+
+        year.textContent =
+            new Date()
+                .getFullYear();
+    }
+}
+
+
+/* =========================================================
+   URL / IMAGE HELPERS
+========================================================= */
+
+function isValidURL(
+    value
+) {
+
+    const raw =
+        clean(value);
+
+
+    if (!raw) {
+        return false;
+    }
+
+
+    try {
+
+        const url =
+            new URL(raw);
+
+
+        return (
+            url.protocol ===
+                "http:" ||
+            url.protocol ===
+                "https:"
+        );
+
+    } catch {
+
+        return false;
+    }
+}
+
+
+function isValidImageURL(
+    value
+) {
+
+    return isValidURL(
+        value
+    );
+}
+
+
+function safeURL(
+    value
+) {
+
+    const raw =
+        clean(value);
+
+
+    return isValidURL(raw)
+        ? raw
+        : "";
+}
+
+
+function createPlaceholderImage() {
+
+    /*
+       Small SVG generated locally.
+
+       No external request.
+       Therefore a missing image doesn't
+       create another network request.
+    */
+
+    const svg = `
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="600"
+            height="750"
+            viewBox="0 0 600 750"
+        >
+
+            <rect
+                width="600"
+                height="750"
+                fill="#efede8"
+            />
+
+            <text
+                x="300"
+                y="375"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                fill="#aaa69e"
+                font-family="Arial"
+                font-size="24"
+            >
+                No image
+            </text>
+
+        </svg>
+    `;
+
+
+    return (
+        "data:image/svg+xml;charset=UTF-8," +
+        encodeURIComponent(svg)
+    );
+}
+
+
+/* =========================================================
+   TEXT HELPERS
+========================================================= */
+
+function capitalize(
+    value
+) {
+
+    const text =
+        clean(value);
+
+
+    if (!text) {
+        return "";
+    }
+
+
+    return (
+        text.charAt(0).toUpperCase() +
+        text.slice(1)
+    );
+}
+
+
+/* =========================================================
+   CLOSE / KEYBOARD
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key ===
+            "Escape"
+        ) {
+
+            closeProduct();
+        }
+
+    }
+);
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        setupMobileMenu();
+
+        setYear();
+
+        loadSheetData();
+
+    }
+);
