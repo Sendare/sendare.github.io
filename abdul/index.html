@@ -3,51 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#050508">
+    <meta name="theme-color" content="#1c1a15">
 
     <title>Store</title>
-    <meta name="description" content="Discover the collection.">
+    <meta name="description" content="Discover our collection.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Marcellus&family=Josefin+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <!-- =====================================================
-     AMBIENT BACKGROUND
-====================================================== -->
-<div class="bg-stage" aria-hidden="true">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <div class="orb orb-4"></div>
-    <div class="grid-mesh"></div>
-    <div class="noise"></div>
-</div>
-
-<div id="cursor-glow" class="cursor-glow" aria-hidden="true"></div>
-
-
-<!-- =====================================================
      PAGE LOADER
 ====================================================== -->
 <div id="page-loader" class="page-loader" aria-label="Loading store">
-    <div class="loader-ring">
-        <span></span><span></span><span></span>
+    <div class="loader-ornament">
+        <span class="loader-line"></span>
+        <span class="loader-diamond"></span>
+        <span class="loader-line"></span>
     </div>
-    <p class="loader-label">INITIALISING</p>
-</div>
-
-
-<!-- =====================================================
-     TICKER
-====================================================== -->
-<div id="ticker" class="ticker" hidden>
-    <div class="ticker-track" id="ticker-track"></div>
+    <p>Opening the shop</p>
 </div>
 
 
@@ -60,7 +39,6 @@
         <a href="#top" class="brand" aria-label="Store home">
             <div class="brand-logo-wrap">
                 <img id="header-logo" class="brand-logo" src="" alt="" loading="eager" decoding="async">
-                <span class="brand-fallback" aria-hidden="true"></span>
             </div>
             <div class="brand-text">
                 <span id="header-business-name" class="brand-name">Store</span>
@@ -69,21 +47,17 @@
         </a>
 
         <button id="menu-btn" class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false">
-            <span></span><span></span>
+            <span></span><span></span><span></span>
         </button>
 
         <nav id="main-nav" class="nav-links" aria-label="Main navigation">
-            <a href="#products">Collection</a>
-            <a href="#about">Studio</a>
+            <a href="#products">Shop</a>
+            <a href="#about">About</a>
             <a href="#details">Info</a>
             <a href="#contact">Contact</a>
 
-            <a id="header-whatsapp" class="nav-wa" href="#" target="_blank" rel="noopener noreferrer" hidden>
-                Order
-            </a>
-
             <button id="header-cart-btn" class="cart-btn" type="button" aria-label="Open cart">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.55L21 8H6"/>
                     <circle cx="10" cy="20" r="1.4"/>
                     <circle cx="18" cy="20" r="1.4"/>
@@ -103,118 +77,95 @@
          HERO
     ====================================================== -->
     <section id="hero" class="hero">
+        <div class="hero-overlay"></div>
 
-        <div class="hero-inner container">
+        <div class="hero-frame">
+            <div class="hero-content">
+                <span id="hero-eyebrow" class="hero-eyebrow">Est. — Fine Goods</span>
+                <h1 id="hero-business-name" class="hero-title">Your Business</h1>
 
-            <div class="hero-badge reveal">
-                <span class="dot-live"></span>
-                <span id="hero-eyebrow">NOW LIVE</span>
-            </div>
-
-            <h1 id="hero-business-name" class="hero-title reveal">Your Business</h1>
-
-            <p id="hero-tagline" class="hero-tagline reveal">Discover something special.</p>
-            <p id="hero-description" class="hero-description reveal"></p>
-
-            <div class="hero-actions reveal">
-                <a id="hero-shop-btn" class="btn btn-primary" href="#products">
-                    <span>Explore Collection</span>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M5 12h14M13 6l6 6-6 6"/>
-                    </svg>
-                </a>
-                <button id="hero-cart-btn" class="btn btn-ghost" type="button">Open Cart</button>
-                <a id="hero-whatsapp" class="btn btn-ghost" href="#" target="_blank" rel="noopener noreferrer" hidden>WhatsApp</a>
-            </div>
-
-            <div class="hero-meta reveal">
-                <div class="meta-chip">
-                    <span class="meta-label">// Status</span>
-                    <span class="meta-value"><span class="dot-live"></span> Open for orders</span>
+                <div class="hero-divider" aria-hidden="true">
+                    <span></span>
+                    <span class="diamond"></span>
+                    <span></span>
                 </div>
-                <div class="meta-chip" data-meta="location" hidden>
-                    <span class="meta-label">// Location</span>
-                    <span id="hero-location" class="meta-value"></span>
-                </div>
-                <div class="meta-chip" data-meta="hours" hidden>
-                    <span class="meta-label">// Hours</span>
-                    <span id="hero-hours" class="meta-value"></span>
+
+                <p id="hero-tagline" class="hero-tagline">Discover something special.</p>
+                <p id="hero-description" class="hero-description"></p>
+
+                <div class="hero-actions">
+                    <a id="hero-shop-btn" class="btn btn-primary" href="#products">Explore Collection</a>
+                    <button id="hero-cart-btn" class="btn btn-secondary" type="button">View Cart</button>
                 </div>
             </div>
-
         </div>
 
-        <div class="hero-scroll" aria-hidden="true">
+        <a href="#products" class="scroll-indicator" aria-label="Scroll to products">
             <span>Scroll</span>
-            <span class="scroll-line"></span>
-        </div>
-
+            <span class="scroll-arrow" aria-hidden="true"></span>
+        </a>
     </section>
 
 
     <!-- =====================================================
-         INFO STRIP
+         INFO STRIP (was "quick info")
     ====================================================== -->
-    <section class="info-strip">
+    <section class="info-strip" aria-label="Store information">
         <div class="container">
             <div id="quick-info" class="info-grid">
 
-                <article class="info-cell reveal" data-info-card="location" hidden>
-                    <div class="cell-head">
-                        <span class="cell-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/>
-                                <circle cx="12" cy="9" r="2.4"/>
-                            </svg>
-                        </span>
-                        <span class="cell-index">01</span>
+                <article class="info-cell" data-info-card="location" hidden>
+                    <span class="info-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/>
+                            <circle cx="12" cy="9" r="2.4"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <span class="info-label">Location</span>
+                        <strong id="quick-location"></strong>
                     </div>
-                    <span class="info-label">Location</span>
-                    <strong id="quick-location"></strong>
                 </article>
 
-                <article class="info-cell reveal" data-info-card="delivery" hidden>
-                    <div class="cell-head">
-                        <span class="cell-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 7h11v9H3z"/>
-                                <path d="M14 10h4l3 3v3h-7"/>
-                                <circle cx="7" cy="18" r="1.6"/>
-                                <circle cx="17" cy="18" r="1.6"/>
-                            </svg>
-                        </span>
-                        <span class="cell-index">02</span>
+                <article class="info-cell" data-info-card="delivery" hidden>
+                    <span class="info-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7h11v9H3z"/>
+                            <path d="M14 10h4l3 3v3h-7"/>
+                            <circle cx="7" cy="18" r="1.6"/>
+                            <circle cx="17" cy="18" r="1.6"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <span class="info-label">Delivery</span>
+                        <strong id="quick-delivery"></strong>
                     </div>
-                    <span class="info-label">Delivery</span>
-                    <strong id="quick-delivery"></strong>
                 </article>
 
-                <article class="info-cell reveal" data-info-card="hours" hidden>
-                    <div class="cell-head">
-                        <span class="cell-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"/>
-                                <path d="M12 7v5l3 2"/>
-                            </svg>
-                        </span>
-                        <span class="cell-index">03</span>
+                <article class="info-cell" data-info-card="hours" hidden>
+                    <span class="info-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 2"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <span class="info-label">Hours</span>
+                        <strong id="quick-hours"></strong>
                     </div>
-                    <span class="info-label">Hours</span>
-                    <strong id="quick-hours"></strong>
                 </article>
 
-                <article class="info-cell reveal" data-info-card="payment" hidden>
-                    <div class="cell-head">
-                        <span class="cell-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2.5" y="6" width="19" height="12" rx="2"/>
-                                <path d="M2.5 10h19"/>
-                            </svg>
-                        </span>
-                        <span class="cell-index">04</span>
+                <article class="info-cell" data-info-card="payment" hidden>
+                    <span class="info-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2.5" y="6" width="19" height="12" rx="2"/>
+                            <path d="M2.5 10h19"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <span class="info-label">Payment</span>
+                        <strong id="quick-payment"></strong>
                     </div>
-                    <span class="info-label">Payment</span>
-                    <strong id="quick-payment"></strong>
                 </article>
 
             </div>
@@ -228,54 +179,58 @@
     <section id="products" class="products-section">
         <div class="container">
 
-            <div class="section-heading reveal">
+            <div class="section-heading">
                 <div>
-                    <span class="section-eyebrow">// 001 — Collection</span>
-                    <h2>Browse the <em>drop</em></h2>
+                    <span class="section-eyebrow">— Chapter I —</span>
+                    <h2>The Collection</h2>
                 </div>
                 <p id="product-count" class="product-count"></p>
             </div>
 
-            <div class="catalog-toolbar reveal">
+            <div class="catalog-toolbar">
                 <div class="search-box">
-                    <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="7"/>
                         <path d="m20 20-3.5-3.5"/>
                     </svg>
-                    <input id="product-search" type="search" placeholder="Search products…" autocomplete="off" aria-label="Search products">
+                    <input id="product-search" type="search" placeholder="Search the collection…" autocomplete="off" aria-label="Search products">
                 </div>
 
                 <div class="sort-box">
                     <label for="sort-products">Sort</label>
                     <select id="sort-products">
                         <option value="default">Recommended</option>
-                        <option value="price-low">Price — Low</option>
-                        <option value="price-high">Price — High</option>
-                        <option value="new">New in</option>
+                        <option value="price-low">Price — Low to High</option>
+                        <option value="price-high">Price — High to Low</option>
+                        <option value="new">New Arrivals</option>
                     </select>
                 </div>
             </div>
 
-            <div id="category-filters" class="category-filters reveal" aria-label="Product categories"></div>
+            <div id="category-filters" class="category-filters" aria-label="Product categories"></div>
 
             <div id="product-grid" class="product-grid" aria-live="polite">
-                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></article>
-                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></article>
-                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></article>
-                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div></article>
+                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line tiny"></div></article>
+                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line tiny"></div></article>
+                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line tiny"></div></article>
+                <article class="product-skeleton"><div class="skeleton-image"></div><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line tiny"></div></article>
             </div>
 
             <div id="products-empty" class="empty-state" hidden>
-                <div class="empty-ring" aria-hidden="true"></div>
-                <h3>No match found</h3>
-                <p>Try another keyword or category.</p>
+                <div class="empty-ornament" aria-hidden="true">
+                    <span></span><span class="diamond"></span><span></span>
+                </div>
+                <h3>Nothing in this chapter</h3>
+                <p>Try another search or category.</p>
             </div>
 
             <div id="products-error" class="error-state" hidden>
-                <div class="empty-ring error" aria-hidden="true"></div>
-                <h3>Catalogue offline</h3>
-                <p>The connection to the shop failed.</p>
-                <button id="retry-products" class="btn btn-primary" type="button">Retry</button>
+                <div class="empty-ornament" aria-hidden="true">
+                    <span></span><span class="diamond"></span><span></span>
+                </div>
+                <h3>The catalogue is closed</h3>
+                <p>Please try again in a moment.</p>
+                <button id="retry-products" class="btn btn-primary" type="button">Try Again</button>
             </div>
 
         </div>
@@ -289,24 +244,25 @@
         <div class="container">
             <div class="about-layout">
 
-                <div class="about-visual reveal">
+                <div class="about-visual">
                     <div class="about-image-frame">
                         <img id="about-logo" src="" alt="" loading="lazy" decoding="async" hidden>
                         <div id="about-placeholder" class="about-placeholder">
-                            <div class="placeholder-orb"></div>
-                            <span class="placeholder-mark" aria-hidden="true">✦</span>
+                            <span class="about-monogram" aria-hidden="true">✦</span>
                         </div>
-                        <div class="frame-corner tl"></div>
-                        <div class="frame-corner tr"></div>
-                        <div class="frame-corner bl"></div>
-                        <div class="frame-corner br"></div>
                     </div>
                 </div>
 
-                <div class="about-content reveal">
-                    <span class="section-eyebrow">// 002 — Studio</span>
-                    <h2>The <span id="about-business-name">Story</span></h2>
+                <div class="about-content">
+                    <span class="section-eyebrow">— Chapter II —</span>
+                    <h2>Our <span id="about-business-name">Story</span></h2>
+
+                    <div class="about-divider" aria-hidden="true">
+                        <span></span><span class="diamond"></span><span></span>
+                    </div>
+
                     <p id="about-description" class="about-description"></p>
+
                     <div id="social-links" class="social-links"></div>
                 </div>
 
@@ -316,80 +272,67 @@
 
 
     <!-- =====================================================
-         DETAILS
+         DETAILS — Find us, Delivery, Payment, Hours
     ====================================================== -->
     <section id="details" class="details-section">
         <div class="container">
 
-            <div class="section-heading reveal">
+            <div class="section-heading centered">
                 <div>
-                    <span class="section-eyebrow">// 003 — Information</span>
-                    <h2>Everything <em>you need</em></h2>
+                    <span class="section-eyebrow">— Chapter III —</span>
+                    <h2>Details of the House</h2>
                 </div>
             </div>
 
             <div class="details-grid">
 
-                <article id="location-card" class="detail-card reveal" hidden>
-                    <div class="detail-top">
-                        <span class="detail-tag">01 / Location</span>
-                        <span class="detail-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/>
-                                <circle cx="12" cy="9" r="2.4"/>
-                            </svg>
-                        </span>
-                    </div>
-                    <h3>Find us</h3>
-                    <p id="detail-location"></p>
-                    <a id="google-maps-link" href="#" target="_blank" rel="noopener noreferrer" hidden>
-                        Open in Maps
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M7 17 17 7M9 7h8v8"/>
+                <article id="location-card" class="detail-card" hidden>
+                    <span class="detail-numeral">I</span>
+                    <span class="detail-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21s-7-7.5-7-12a7 7 0 1 1 14 0c0 4.5-7 12-7 12z"/>
+                            <circle cx="12" cy="9" r="2.4"/>
                         </svg>
-                    </a>
+                    </span>
+                    <h3>Find Us</h3>
+                    <p id="detail-location"></p>
+                    <a id="google-maps-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Open in Maps</a>
                 </article>
 
-                <article id="delivery-card" class="detail-card reveal" hidden>
-                    <div class="detail-top">
-                        <span class="detail-tag">02 / Delivery</span>
-                        <span class="detail-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M3 7h11v9H3z"/>
-                                <path d="M14 10h4l3 3v3h-7"/>
-                                <circle cx="7" cy="18" r="1.6"/>
-                                <circle cx="17" cy="18" r="1.6"/>
-                            </svg>
-                        </span>
-                    </div>
+                <article id="delivery-card" class="detail-card" hidden>
+                    <span class="detail-numeral">II</span>
+                    <span class="detail-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7h11v9H3z"/>
+                            <path d="M14 10h4l3 3v3h-7"/>
+                            <circle cx="7" cy="18" r="1.6"/>
+                            <circle cx="17" cy="18" r="1.6"/>
+                        </svg>
+                    </span>
                     <h3>Delivery</h3>
                     <p id="detail-delivery"></p>
                 </article>
 
-                <article id="payment-card" class="detail-card reveal" hidden>
-                    <div class="detail-top">
-                        <span class="detail-tag">03 / Payment</span>
-                        <span class="detail-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2.5" y="6" width="19" height="12" rx="2"/>
-                                <path d="M2.5 10h19"/>
-                            </svg>
-                        </span>
-                    </div>
+                <article id="payment-card" class="detail-card" hidden>
+                    <span class="detail-numeral">III</span>
+                    <span class="detail-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2.5" y="6" width="19" height="12" rx="2"/>
+                            <path d="M2.5 10h19"/>
+                        </svg>
+                    </span>
                     <h3>Payment</h3>
                     <p id="detail-payment"></p>
                 </article>
 
-                <article id="hours-card" class="detail-card reveal" hidden>
-                    <div class="detail-top">
-                        <span class="detail-tag">04 / Hours</span>
-                        <span class="detail-mark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"/>
-                                <path d="M12 7v5l3 2"/>
-                            </svg>
-                        </span>
-                    </div>
+                <article id="hours-card" class="detail-card" hidden>
+                    <span class="detail-numeral">IV</span>
+                    <span class="detail-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 2"/>
+                        </svg>
+                    </span>
                     <h3>Opening Hours</h3>
                     <p id="detail-hours"></p>
                 </article>
@@ -400,36 +343,29 @@
 
 
     <!-- =====================================================
-         CONTACT
+         CONTACT — multi-platform
     ====================================================== -->
     <section id="contact" class="contact-section">
         <div class="container">
-            <div class="contact-box reveal">
+            <div class="contact-box">
 
-                <div class="contact-glow" aria-hidden="true"></div>
+                <div class="contact-ornament" aria-hidden="true"></div>
 
-                <div class="contact-grid">
+                <div class="contact-content">
+                    <span class="section-eyebrow light">— Chapter IV —</span>
+                    <h2>Let's Correspond</h2>
 
-                    <div class="contact-copy">
-                        <span class="section-eyebrow">// 004 — Contact</span>
-                        <h2>Let's <em>talk</em></h2>
-                        <p id="contact-message">We'd love to hear from you.</p>
-
-                        <a id="contact-phone" class="contact-phone" href="#" hidden>
-                            <span class="phone-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.4 2.1L8 9.6a16 16 0 0 0 6.4 6.4l1.3-1.3a2 2 0 0 1 2.1-.4c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2z"/>
-                                </svg>
-                            </span>
-                            <span id="contact-phone-number"></span>
-                        </a>
-
-                        <a id="contact-whatsapp" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+                    <div class="contact-divider" aria-hidden="true">
+                        <span></span><span class="diamond"></span><span></span>
                     </div>
 
-                    <div id="contact-actions" class="contact-actions"></div>
-
+                    <p id="contact-message">We would be delighted to hear from you.</p>
                 </div>
+
+                <div id="contact-actions" class="contact-actions">
+                    <!-- Populated by JavaScript -->
+                </div>
+
             </div>
         </div>
     </section>
@@ -457,18 +393,17 @@
             <div id="footer-socials" class="footer-socials"></div>
         </div>
 
+        <div class="footer-rule" aria-hidden="true">
+            <span></span><span class="diamond"></span><span></span>
+        </div>
+
         <div class="footer-bottom">
             <p>
                 © <span id="footer-year"></span>
                 <span id="footer-business-name-bottom">Store</span>
                 — All rights reserved
             </p>
-            <a href="#top" class="footer-top-link">
-                Back to top
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 19V5M5 12l7-7 7 7"/>
-                </svg>
-            </a>
+            <a href="#top">Return to Top ↑</a>
         </div>
 
     </div>
@@ -483,7 +418,7 @@
 
     <div class="modal-container">
         <button id="modal-close" class="modal-close" type="button" aria-label="Close product">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                 <path d="M6 6l12 12M18 6L6 18"/>
             </svg>
         </button>
@@ -493,8 +428,10 @@
             <div class="product-gallery">
                 <div class="main-product-image">
                     <div id="modal-image-loader" class="image-loader">
-                        <div class="loader-ring small">
-                            <span></span><span></span><span></span>
+                        <div class="loader-ornament small">
+                            <span class="loader-line"></span>
+                            <span class="loader-diamond"></span>
+                            <span class="loader-line"></span>
                         </div>
                     </div>
                     <img id="modal-main-image" src="" alt="" decoding="async">
@@ -517,17 +454,25 @@
                 <p id="modal-description" class="modal-description"></p>
 
                 <div id="modal-details" class="modal-details">
-                    <div class="modal-detail" data-detail="colour" hidden><span>Colour</span><strong id="modal-colour"></strong></div>
-                    <div class="modal-detail" data-detail="sizes" hidden><span>Sizes</span><strong id="modal-sizes"></strong></div>
-                    <div class="modal-detail" data-detail="material" hidden><span>Material</span><strong id="modal-material"></strong></div>
-                    <div class="modal-detail" data-detail="stock" hidden><span>Availability</span><strong id="modal-stock"></strong></div>
+                    <div class="modal-detail" data-detail="colour" hidden>
+                        <span>Colour</span><strong id="modal-colour"></strong>
+                    </div>
+                    <div class="modal-detail" data-detail="sizes" hidden>
+                        <span>Sizes</span><strong id="modal-sizes"></strong>
+                    </div>
+                    <div class="modal-detail" data-detail="material" hidden>
+                        <span>Material</span><strong id="modal-material"></strong>
+                    </div>
+                    <div class="modal-detail" data-detail="stock" hidden>
+                        <span>Availability</span><strong id="modal-stock"></strong>
+                    </div>
                 </div>
 
                 <div class="modal-order-area">
                     <button id="modal-add-cart" class="btn btn-primary modal-order-btn" type="button">
                         Add to Cart
                     </button>
-                    <a id="modal-whatsapp" class="btn btn-ghost modal-order-btn" href="#" target="_blank" rel="noopener noreferrer" hidden>
+                    <a id="modal-whatsapp" class="btn btn-outline modal-order-btn" href="#" target="_blank" rel="noopener noreferrer" hidden>
                         Order via WhatsApp
                     </a>
                     <p id="modal-order-instruction" class="order-instruction"></p>
@@ -546,25 +491,27 @@
     <div class="cart-backdrop"></div>
 
     <aside class="cart-panel">
-
         <header class="cart-head">
             <div>
-                <span class="section-eyebrow">// Order sheet</span>
-                <h2 id="cart-title">Your Cart</h2>
+                <span class="section-eyebrow">— Your Selection —</span>
+                <h2 id="cart-title">Order Sheet</h2>
             </div>
             <button id="cart-close" class="modal-close small" type="button" aria-label="Close cart">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
                     <path d="M6 6l12 12M18 6L6 18"/>
                 </svg>
             </button>
         </header>
 
+        <div class="cart-rule" aria-hidden="true">
+            <span></span><span class="diamond"></span><span></span>
+        </div>
+
         <div id="cart-items" class="cart-items"></div>
 
         <div id="cart-empty" class="cart-empty">
-            <div class="empty-ring small" aria-hidden="true"></div>
-            <p>Your cart is empty</p>
-            <p class="cart-empty-hint">Add items from the collection</p>
+            <p>Your order sheet is empty.</p>
+            <p class="cart-empty-hint">Add items from the collection to begin.</p>
         </div>
 
         <footer class="cart-foot">
@@ -580,13 +527,13 @@
 
             <label class="cart-field">
                 <span>Note (optional)</span>
-                <textarea id="cart-note" rows="2" placeholder="Address, size, requests…"></textarea>
+                <textarea id="cart-note" rows="2" placeholder="Delivery address, sizes, special requests…"></textarea>
             </label>
 
             <div class="cart-send-actions">
                 <button id="cart-send" class="btn btn-primary" type="button">
-                    <span>Send Order</span>
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    Send Order
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M5 12h14M13 6l6 6-6 6"/>
                     </svg>
                 </button>
@@ -598,7 +545,6 @@
                 <div id="cart-send-options" class="cart-send-options"></div>
             </div>
         </footer>
-
     </aside>
 </div>
 
