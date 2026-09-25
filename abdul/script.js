@@ -1083,4 +1083,514 @@ function updateCartUI() {
         if (emptyState) emptyState.hidden = false;
     } else {
         if (emptyState) emptyState.hidden = true;
-        container.innerHTML = cart.map(
+        container.innerHTML = cart.map(createCartItemHTML).join("");
+
+        container.querySelectorAll("[data-qty-inc]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const key = btn.dataset.qtyInc;
+                const item = cart.find(i => i.key === key);
+                if (item) setCartQuantity(key, item.quantity + 1);
+            });
+        });
+
+        container.querySelectorAll("[data-qty-dec]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const key = btn.dataset.qtyDec;
+                const item = cart.find(i => i.key === key);
+                if (item) setCartQuantity(key, item.quantity - 1);
+            });
+        });
+
+        container.querySelectorAll("[data-qty-remove]").forEach(btn => {
+            btn.addEventListener("click", () => removeFromCart(btn.dataset.qtyRemove));
+        });
+    }
+
+    if (totalEl) {
+        totalEl.textContent = cart.length ? formatPrice(String(getCartTotal())) : "—";
+    }
+
+    // Refresh product cards' add-to-cart state
+    document.querySelectorAll("[data-add-cart]").forEach(btn => {
+        const idx = Number(btn.dataset.addCart);
+        const product = currentProducts[idx];
+        if (!product) return;
+        const inCart = isInCart(product);
+        btn.classList.toggle("added", inCart);
+        btn.innerHTML = inCart ? ICONS.check : ICONS.plus;
+    });
+}
+
+
+function createCartItemHTML(item) {
+    const img = item.image ? safeImageSrc(item.image) : createPlaceholderImage();
+    const subtotal = numericValue(item.price) * item.quantity;
+
+    return `
+        <div class="cart-item">
+            <img class="cart-item-image" src="${img}" alt="${escapeHTML(item.name)}" loading="lazy">
+
+            <div class="cart-item-info">
+                <h4>${escapeHTML(item.name)}</h4>
+                <div class="cart-item-price">${escapeHTML(formatPrice(item.price))}</div>
+
+                <div class="cart-item-qty">
+                    <button type="button" data-qty-dec="${escapeHTML(item.key)}" aria-label="Decrease">−</button>
+                    <span>${item.quantity}</span>
+                    <button type="button" data-qty-inc="${escapeHTML(item.key)}" aria-label="Increase">+</button>
+                </div>
+            </div>
+
+            <div class="cart-item-side">
+                <div class="cart-item-subtotal">${escapeHTML(formatPrice(String(subtotal)))}</div>
+                <button class="cart-item-remove" type="button" data-qty-remove="${escapeHTML(item.key)}">
+                    Remove
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   CART DRAWER — with history support
+========================================================= */
+function openCart() {
+    const drawer = document.getElementById("cart-drawer");
+    if (!drawer) return;
+
+    updateCartUI();
+    drawer.hidden = false;
+    isCartOpen = true;
+    document.body.classList.add("cart-open");
+
+    requestAnimationFrame(() => drawer.classList.add("active"));
+
+    if (historyLayer !== "cart") {
+        history.pushState({ layer: "cart" }, "");
+        historyLayer = "cart";
+    }
+}
+
+
+function closeCart() {
+    if (!isCartOpen) return;
+    if (historyLayer === "cart") {
+        history.back();
+    } else {
+        closeCartInternal();
+    }
+}
+
+
+function closeCartInternal() {
+    const drawer = document.getElementById("cart-drawer");
+    if (!drawer) return;
+
+    drawer.classList.remove("active");
+    isCartOpen = false;
+    document.body.classList.remove("cart-open");
+    historyLayer = null;
+
+    setTimeout(() => { drawer.hidden = true; }, 320);
+}
+
+
+/* =========================================================
+   CART SEND MENU
+========================================================= */
+function buildSendMenu() {
+    const container = document.getElementById("cart-send-options");
+    if (!container) return;
+
+    const options = [];
+
+    const whatsapp = business["whatsapp business"] || business["whatsapp"] || business["phone"];
+    if (hasValue(whatsapp)) {
+        options.push({
+            key: "whatsapp",
+            label: "WhatsApp",
+            icon: ICONS.whatsapp,
+            action: () => sendOrderVia("whatsapp")
+        });
+    }
+
+    const telegram = business["telegram"];
+    if (isValidURL(telegram)) {
+        options.push({
+            key: "telegram",
+            label: "Telegram",
+            icon: ICONS.telegram,
+            action: () => sendOrderVia("telegram")
+        });
+    }
+
+    const email = business["email"];
+    if (hasValue(email) && email.includes("@")) {
+        options.push({
+            key: "email",
+            label: "Email",
+            icon: ICONS.mail,
+            action: () => sendOrderVia("email")
+        });
+    }
+
+    if (hasValue(business["phone"])) {
+        options.push({
+            key: "sms",
+            label: "SMS",
+            icon: ICONS.sms,
+            action: () => sendOrderVia("sms")
+        });
+    }
+
+    container.innerHTML = "";
+
+    options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cart-send-option";
+        btn.innerHTML = `${opt.icon}<span>${escapeHTML(opt.label)}</span>`;
+        btn.addEventListener("click", opt.action);
+        container.appendChild(btn);
+    });
+
+    if (!options.length) {
+        container.innerHTML = `<p class="cart-empty-hint">No contact method available.</p>`;
+    }
+}
+
+
+function buildOrderMessage() {
+    const businessName = business["business name"] || "Store";
+    const name = clean(document.getElementById("cart-name")?.value);
+    const note = clean(document.getElementById("cart-note")?.value);
+
+    let msg = `*New Order — ${businessName}*\n\n`;
+
+    cart.forEach((item, i) => {
+        const lineTotal = numericValue(item.price) * item.quantity;
+        msg += `${i + 1}. ${item.name} × ${item.quantity} — ${formatPrice(String(lineTotal))}\n`;
+    });
+
+    msg += `\n*Subtotal:* ${formatPrice(String(getCartTotal()))}`;
+
+    if (name) msg += `\n\n*Name:* ${name}`;
+    if (note) msg += `\n*Note:* ${note}`;
+
+    return msg;
+}
+
+
+function sendOrderVia(channel) {
+    const message = buildOrderMessage();
+    const encoded = encodeURIComponent(message);
+
+    if (channel === "whatsapp") {
+        const num = business["whatsapp business"] || business["whatsapp"] || business["phone"];
+        const url = createWhatsAppLink(num, message);
+        if (url) window.open(url, "_blank");
+        return;
+    }
+
+    if (channel === "telegram") {
+        // Telegram doesn't support prefilled text to arbitrary users,
+        // so open the business profile link.
+        const tg = business["telegram"];
+        if (isValidURL(tg)) window.open(tg, "_blank");
+        return;
+    }
+
+    if (channel === "email") {
+        const email = business["email"];
+        const subject = encodeURIComponent(`New Order — ${business["business name"] || "Store"}`);
+        window.location.href = `mailto:${email}?subject=${subject}&body=${encoded}`;
+        return;
+    }
+
+    if (channel === "sms") {
+        const phone = business["phone"];
+        // Some platforms use "?body=", others use "&body=" — "?body=" works widely.
+        window.location.href = `sms:${phone}?body=${encoded}`;
+    }
+}
+
+
+/* =========================================================
+   EVENT DELEGATION
+========================================================= */
+document.addEventListener("click", event => {
+    // Open product
+    const openBtn = event.target.closest("[data-open-product]");
+    if (openBtn) {
+        openProduct(openBtn.dataset.openProduct);
+        return;
+    }
+
+    // Add to cart (card)
+    const addBtn = event.target.closest("[data-add-cart]");
+    if (addBtn) {
+        const idx = Number(addBtn.dataset.addCart);
+        const product = currentProducts[idx];
+        if (!product) return;
+        if (!isAvailable(product)) return;
+
+        addToCart(product, 1);
+
+        // Quick visual feedback
+        addBtn.classList.add("added");
+        addBtn.innerHTML = ICONS.check;
+        setTimeout(() => updateCartUI(), 900);
+        return;
+    }
+
+    // Modal backdrop
+    if (event.target.classList.contains("modal-backdrop")) {
+        closeProduct();
+        return;
+    }
+
+    // Cart backdrop
+    if (event.target.classList.contains("cart-backdrop")) {
+        closeCart();
+        return;
+    }
+});
+
+
+/* =========================================================
+   HISTORY (phone back button)
+========================================================= */
+window.addEventListener("popstate", () => {
+    if (historyLayer === "modal" || isModalOpen) {
+        closeProductInternal();
+        return;
+    }
+    if (historyLayer === "cart" || isCartOpen) {
+        closeCartInternal();
+        return;
+    }
+    historyLayer = null;
+});
+
+
+/* =========================================================
+   MOBILE MENU
+========================================================= */
+function setupMobileMenu() {
+    const button = document.getElementById("menu-btn");
+    const nav = document.getElementById("main-nav");
+    if (!button || !nav) return;
+
+    button.addEventListener("click", () => {
+        const active = nav.classList.toggle("active");
+        button.setAttribute("aria-expanded", String(active));
+    });
+
+    nav.querySelectorAll("a").forEach(link => {
+        link.addEventListener("click", () => {
+            nav.classList.remove("active");
+            button.setAttribute("aria-expanded", "false");
+        });
+    });
+}
+
+
+/* =========================================================
+   MODAL CLOSE BUTTON (FIX — the × works now)
+========================================================= */
+function setupModalClose() {
+    const closeButton = document.getElementById("modal-close");
+    if (closeButton) {
+        closeButton.addEventListener("click", closeProduct);
+    }
+
+    const cartCloseButton = document.getElementById("cart-close");
+    if (cartCloseButton) {
+        cartCloseButton.addEventListener("click", closeCart);
+    }
+}
+
+
+/* =========================================================
+   CART BUTTONS
+========================================================= */
+function setupCartButtons() {
+    const headerBtn = document.getElementById("header-cart-btn");
+    const heroBtn = document.getElementById("hero-cart-btn");
+
+    if (headerBtn) headerBtn.addEventListener("click", openCart);
+    if (heroBtn) heroBtn.addEventListener("click", openCart);
+
+    const addCartFromModal = document.getElementById("modal-add-cart");
+    if (addCartFromModal) {
+        addCartFromModal.addEventListener("click", () => {
+            const idx = Number(addCartFromModal.dataset.productIndex);
+            const product = currentProducts[idx];
+            if (!product) return;
+            addToCart(product, 1);
+            closeProduct();
+            openCart();
+        });
+    }
+
+    const sendBtn = document.getElementById("cart-send");
+    const sendMenu = document.getElementById("cart-send-menu");
+
+    if (sendBtn && sendMenu) {
+        sendBtn.addEventListener("click", () => {
+            if (!cart.length) return;
+            buildSendMenu();
+            sendMenu.hidden = !sendMenu.hidden;
+        });
+    }
+
+    const clearBtn = document.getElementById("cart-clear");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            if (!cart.length) return;
+            if (confirm("Clear all items from your order?")) {
+                clearCart();
+                if (sendMenu) sendMenu.hidden = true;
+            }
+        });
+    }
+}
+
+
+/* =========================================================
+   RETRY (FIX #2 — bound before load, idempotent)
+========================================================= */
+function setupRetry() {
+    const button = document.getElementById("retry-products");
+    if (!button || button.dataset.bound) return;
+
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+        hideProductError();
+        loadSheetData();
+    });
+}
+
+
+function showProductError() {
+    const grid = document.getElementById("product-grid");
+    if (grid) grid.innerHTML = "";
+    showElement("products-error");
+}
+
+
+function hideProductError() {
+    hideElement("products-error");
+}
+
+
+/* =========================================================
+   PAGE LOADER
+========================================================= */
+function showPageLoader() {
+    const loader = document.getElementById("page-loader");
+    if (loader) loader.classList.remove("loaded");
+}
+
+
+function hidePageLoader() {
+    const loader = document.getElementById("page-loader");
+    if (loader) loader.classList.add("loaded");
+}
+
+
+/* =========================================================
+   DOM HELPERS
+========================================================= */
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.textContent = clean(value);
+}
+
+
+function setLink(id, url) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.href = url;
+}
+
+
+function setImage(id, src, alt) {
+    const image = document.getElementById(id);
+    if (!image) return;
+    image.src = safeImageSrc(src);
+    image.alt = alt || "Business";
+}
+
+
+function showElement(id) {
+    const element = document.getElementById(id);
+    if (element) element.hidden = false;
+}
+
+
+function hideElement(id) {
+    const element = document.getElementById(id);
+    if (element) element.hidden = true;
+}
+
+
+function toggleElement(id, value) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.hidden = !hasValue(value);
+}
+
+
+function toggleInfoCard(type, value) {
+    const card = document.querySelector(`[data-info-card="${type}"]`);
+    if (!card) return;
+    card.hidden = !hasValue(value);
+}
+
+
+function toggleModalDetail(type, value) {
+    const element = document.querySelector(`[data-detail="${type}"]`);
+    if (!element) return;
+    element.hidden = !hasValue(value);
+}
+
+
+function setYear() {
+    const year = document.getElementById("footer-year");
+    if (year) year.textContent = new Date().getFullYear();
+}
+
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        if (isModalOpen) closeProduct();
+        else if (isCartOpen) closeCart();
+    }
+});
+
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+document.addEventListener("DOMContentLoaded", () => {
+    // Bind UI listeners once, before any network work.
+    setupMobileMenu();
+    setupModalClose();
+    setupCartButtons();
+    setupSearch();
+    setupSorting();
+    setupRetry();
+
+    // Restore persisted cart
+    loadCart();
+    updateCartUI();
+
+    // Kick off the network load.
+    loadSheetData();
+});
