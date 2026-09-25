@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#111111"
+    >
+
+    <title>Store</title>
+
+    <meta
+        name="description"
+        content="Discover our products and shop with us."
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <!-- =========================
+         PAGE LOADER
+    ========================== -->
+
+    <div
+        id="page-loader"
+        class="page-loader"
+        aria-label="Loading store"
+    >
+        <div class="loader-spinner"></div>
+        <p>Loading store...</p>
+    </div>
+
+
+    <!-- =========================
+         HEADER
+    ========================== -->
+
+    <header class="site-header">
+
+        <div class="header-inner">
+
+            <a
+                href="#top"
+                class="brand"
+                aria-label="Store home"
+            >
+
+                <div class="brand-logo-wrap">
+                    <img
+                        id="header-logo"
+                        class="brand-logo"
+                        src=""
+                        alt=""
+                        loading="eager"
+                        decoding="async"
+                    >
+                </div>
+
+                <div class="brand-text">
+
+                    <span
+                        id="header-business-name"
+                        class="brand-name"
+                    >
+                        Store
+                    </span>
+
+                    <span
+                        id="header-tagline"
+                        class="brand-tagline"
+                    ></span>
+
+                </div>
+
+            </a>
+
+
+            <button
+                id="menu-btn"
+                class="menu-btn"
+                type="button"
+                aria-label="Open menu"
+                aria-expanded="false"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+
+            <nav
+                id="main-nav"
+                class="nav-links"
+                aria-label="Main navigation"
+            >
+
+                <a href="#products">Shop</a>
+                <a href="#about">About</a>
+                <a href="#contact">Contact</a>
+
+                <a
+                    id="header-whatsapp"
+                    class="nav-order-btn"
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    hidden
+                >
+                    Order
+                </a>
+
+            </nav>
+
+        </div>
+
+    </header>
+
+
+    <main id="top">
+
+
+        <!-- =========================
+             HERO
+        ========================== -->
+
+        <section
+            id="hero"
+            class="hero"
+        >
+
+            <div class="hero-overlay"></div>
+
+            <div class="hero-content">
+
+                <span
+                    id="hero-eyebrow"
+                    class="hero-eyebrow"
+                >
+                    Welcome
+                </span>
+
+                <h1
+                    id="hero-business-name"
+                    class="hero-title"
+                >
+                    Your Business
+                </h1>
+
+                <p
+                    id="hero-tagline"
+                    class="hero-tagline"
+                >
+                    Discover something special.
+                </p>
+
+                <p
+                    id="hero-description"
+                    class="hero-description"
+                ></p>
+
+
+                <div class="hero-actions">
+
+                    <a
+                        id="hero-shop-btn"
+                        class="btn btn-primary"
+                        href="#products"
+                    >
+                        Explore Collection
+                    </a>
+
+                    <a
+                        id="hero-whatsapp"
+                        class="btn btn-secondary"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        hidden
+                    >
+                        WhatsApp Us
+                    </a>
+
+                </div>
+
+            </div>
+
+
+            <a
+                href="#products"
+                class="scroll-indicator"
+                aria-label="Scroll to products"
+            >
+                <span>Explore</span>
+                <span class="scroll-arrow">↓</span>
+            </a>
+
+        </section>
+
+
+        <!-- =========================
+             QUICK BUSINESS INFO
+        ========================== -->
+
+        <section class="quick-info-section">
+
+            <div class="container">
+
+                <div
+                    id="quick-info"
+                    class="quick-info-grid"
+                >
+
+                    <article
+                        class="info-card"
+                        data-info-card="location"
+                        hidden
+                    >
+
+                        <span class="info-icon">⌖</span>
+
+                        <div>
+                            <span class="info-label">
+                                Location
+                            </span>
+
+                            <strong
+                                id="quick-location"
+                            ></strong>
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="info-card"
+                        data-info-card="delivery"
+                        hidden
+                    >
+
+                        <span class="info-icon">↗</span>
+
+                        <div>
+                            <span class="info-label">
+                                Delivery
+                            </span>
+
+                            <strong
+                                id="quick-delivery"
+                            ></strong>
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="info-card"
+                        data-info-card="hours"
+                        hidden
+                    >
+
+                        <span class="info-icon">◷</span>
+
+                        <div>
+                            <span class="info-label">
+                                Opening Hours
+                            </span>
+
+                            <strong
+                                id="quick-hours"
+                            ></strong>
+                        </div>
+
+                    </article>
+
+
+                    <article
+                        class="info-card"
+                        data-info-card="payment"
+                        hidden
+                    >
+
+                        <span class="info-icon">₦</span>
+
+                        <div>
+                            <span class="info-label">
+                                Payment
+                            </span>
+
+                            <strong
+                                id="quick-payment"
+                            ></strong>
+                        </div>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             PRODUCTS
+        ========================== -->
+
+        <section
+            id="products"
+            class="products-section"
+        >
+
+            <div class="container">
+
+
+                <div class="section-heading">
+
+                    <div>
+
+                        <span class="section-eyebrow">
+                            Collection
+                        </span>
+
+                        <h2>
+                            Explore Our Products
+                        </h2>
+
+                    </div>
+
+                    <p
+                        id="product-count"
+                        class="product-count"
+                    ></p>
+
+                </div>
+
+
+                <!-- Search + sort -->
+
+                <div class="catalog-toolbar">
+
+                    <div class="search-box">
+
+                        <span
+                            class="search-icon"
+                            aria-hidden="true"
+                        >
+                            ⌕
+                        </span>
+
+                        <input
+                            id="product-search"
+                            type="search"
+                            placeholder="Search products..."
+                            autocomplete="off"
+                            aria-label="Search products"
+                        >
+
+                    </div>
+
+
+                    <div class="sort-box">
+
+                        <label
+                            for="sort-products"
+                        >
+                            Sort
+                        </label>
+
+                        <select
+                            id="sort-products"
+                        >
+
+                            <option value="default">
+                                Recommended
+                            </option>
+
+                            <option value="price-low">
+                                Price: Low to High
+                            </option>
+
+                            <option value="price-high">
+                                Price: High to Low
+                            </option>
+
+                            <option value="new">
+                                New Arrivals
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Categories -->
+
+                <div
+                    id="category-filters"
+                    class="category-filters"
+                    aria-label="Product categories"
+                >
+                    <!-- Generated by JavaScript -->
+                </div>
+
+
+                <!-- Product grid -->
+
+                <div
+                    id="product-grid"
+                    class="product-grid"
+                    aria-live="polite"
+                >
+
+                    <!-- Loading skeletons -->
+
+                    <article class="product-skeleton">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line tiny"></div>
+                    </article>
+
+                    <article class="product-skeleton">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line tiny"></div>
+                    </article>
+
+                    <article class="product-skeleton">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line tiny"></div>
+                    </article>
+
+                </div>
+
+
+                <!-- Empty state -->
+
+                <div
+                    id="products-empty"
+                    class="empty-state"
+                    hidden
+                >
+
+                    <div class="empty-icon">
+                        ◌
+                    </div>
+
+                    <h3>
+                        Nothing found
+                    </h3>
+
+                    <p>
+                        Try another search or category.
+                    </p>
+
+                </div>
+
+
+                <!-- Error state -->
+
+                <div
+                    id="products-error"
+                    class="error-state"
+                    hidden
+                >
+
+                    <div class="error-icon">
+                        !
+                    </div>
+
+                    <h3>
+                        Products couldn't load
+                    </h3>
+
+                    <p>
+                        Please try again in a moment.
+                    </p>
+
+                    <button
+                        id="retry-products"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        Try Again
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             ABOUT BUSINESS
+        ========================== -->
+
+        <section
+            id="about"
+            class="about-section"
+        >
+
+            <div class="container">
+
+                <div class="about-layout">
+
+
+                    <div class="about-visual">
+
+                        <div class="about-image-frame">
+
+                            <img
+                                id="about-logo"
+                                src=""
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                hidden
+                            >
+
+                            <div
+                                id="about-placeholder"
+                                class="about-placeholder"
+                            >
+                                <span>✦</span>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="about-content">
+
+                        <span class="section-eyebrow">
+                            Our Story
+                        </span>
+
+                        <h2>
+                            About
+                            <span
+                                id="about-business-name"
+                            >
+                                Us
+                            </span>
+                        </h2>
+
+                        <p
+                            id="about-description"
+                            class="about-description"
+                        ></p>
+
+
+                        <div
+                            id="social-links"
+                            class="social-links"
+                        >
+                            <!-- Generated by JavaScript -->
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             BUSINESS DETAILS
+        ========================== -->
+
+        <section class="details-section">
+
+            <div class="container">
+
+                <div class="details-grid">
+
+
+                    <article
+                        id="location-card"
+                        class="detail-card"
+                        hidden
+                    >
+
+                        <span class="detail-number">
+                            01
+                        </span>
+
+                        <div class="detail-icon">
+                            ⌖
+                        </div>
+
+                        <h3>
+                            Find Us
+                        </h3>
+
+                        <p
+                            id="detail-location"
+                        ></p>
+
+                        <a
+                            id="google-maps-link"
+                            href="#"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            hidden
+                        >
+                            Open in Maps →
+                        </a>
+
+                    </article>
+
+
+                    <article
+                        id="delivery-card"
+                        class="detail-card"
+                        hidden
+                    >
+
+                        <span class="detail-number">
+                            02
+                        </span>
+
+                        <div class="detail-icon">
+                            ↗
+                        </div>
+
+                        <h3>
+                            Delivery
+                        </h3>
+
+                        <p
+                            id="detail-delivery"
+                        ></p>
+
+                    </article>
+
+
+                    <article
+                        id="payment-card"
+                        class="detail-card"
+                        hidden
+                    >
+
+                        <span class="detail-number">
+                            03
+                        </span>
+
+                        <div class="detail-icon">
+                            ◇
+                        </div>
+
+                        <h3>
+                            Payment
+                        </h3>
+
+                        <p
+                            id="detail-payment"
+                        ></p>
+
+                    </article>
+
+
+                    <article
+                        id="hours-card"
+                        class="detail-card"
+                        hidden
+                    >
+
+                        <span class="detail-number">
+                            04
+                        </span>
+
+                        <div class="detail-icon">
+                            ◷
+                        </div>
+
+                        <h3>
+                            Opening Hours
+                        </h3>
+
+                        <p
+                            id="detail-hours"
+                        ></p>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================
+             CONTACT / ORDER CTA
+        ========================== -->
+
+        <section
+            id="contact"
+            class="contact-section"
+        >
+
+            <div class="container">
+
+                <div class="contact-box">
+
+                    <div class="contact-content">
+
+                        <span class="section-eyebrow">
+                            Let's Connect
+                        </span>
+
+                        <h2>
+                            Ready to place an order?
+                        </h2>
+
+                        <p
+                            id="contact-message"
+                        >
+                            We'd love to hear from you.
+                        </p>
+
+                    </div>
+
+
+                    <div class="contact-actions">
+
+                        <a
+                            id="contact-whatsapp"
+                            class="contact-action whatsapp-action"
+                            href="#"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            hidden
+                        >
+                            <span class="action-icon">
+                                ↗
+                            </span>
+
+                            <span>
+                                <small>
+                                    Chat with us
+                                </small>
+
+                                <strong>
+                                    WhatsApp
+                                </strong>
+                            </span>
+
+                        </a>
+
+
+                        <a
+                            id="contact-phone"
+                            class="contact-action"
+                            href="#"
+                            hidden
+                        >
+                            <span class="action-icon">
+                                ☎
+                            </span>
+
+                            <span>
+                                <small>
+                                    Call us
+                                </small>
+
+                                <strong>
+                                    <span
+                                        id="contact-phone-number"
+                                    ></span>
+                                </strong>
+                            </span>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================
+         FOOTER
+    ========================== -->
+
+    <footer class="site-footer">
+
+        <div class="container">
+
+            <div class="footer-top">
+
+                <div class="footer-brand">
+
+                    <div class="footer-logo-wrap">
+
+                        <img
+                            id="footer-logo"
+                            src=""
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            hidden
+                        >
+
+                    </div>
+
+                    <div>
+
+                        <strong
+                            id="footer-business-name"
+                        >
+                            Store
+                        </strong>
+
+                        <p
+                            id="footer-tagline"
+                        ></p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="footer-socials"
+                    class="footer-socials"
+                >
+                    <!-- Generated by JavaScript -->
+                </div>
+
+            </div>
+
+
+            <div class="footer-bottom">
+
+                <p>
+                    ©
+                    <span id="footer-year"></span>
+                    <span id="footer-business-name-bottom">
+                        Store
+                    </span>
+                    . All rights reserved.
+                </p>
+
+                <a href="#top">
+                    Back to top ↑
+                </a>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+
+    <!-- =========================
+         PRODUCT MODAL
+    ========================== -->
+
+    <div
+        id="product-modal"
+        class="product-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        hidden
+    >
+
+        <div class="modal-backdrop"></div>
+
+        <div class="modal-container">
+
+            <button
+                id="modal-close"
+                class="modal-close"
+                type="button"
+                aria-label="Close product"
+            >
+                ×
+            </button>
+
+
+            <div class="modal-layout">
+
+
+                <!-- Gallery -->
+
+                <div class="product-gallery">
+
+                    <div class="main-product-image">
+
+                        <div
+                            id="modal-image-loader"
+                            class="image-loader"
+                        >
+                            <div class="loader-spinner"></div>
+                        </div>
+
+                        <img
+                            id="modal-main-image"
+                            src=""
+                            alt=""
+                            decoding="async"
+                        >
+
+                    </div>
+
+
+                    <div
+                        id="modal-thumbnails"
+                        class="product-thumbnails"
+                        aria-label="Product images"
+                    >
+                        <!-- Generated by JavaScript -->
+                    </div>
+
+                </div>
+
+
+                <!-- Product information -->
+
+                <div class="modal-product-info">
+
+                    <span
+                        id="modal-category"
+                        class="modal-category"
+                    ></span>
+
+                    <h2
+                        id="modal-title"
+                    >
+                        Product
+                    </h2>
+
+
+                    <div class="modal-price-row">
+
+                        <strong
+                            id="modal-price"
+                            class="modal-price"
+                        ></strong>
+
+                        <del
+                            id="modal-old-price"
+                            class="modal-old-price"
+                        ></del>
+
+                    </div>
+
+
+                    <div
+                        id="modal-badges"
+                        class="modal-badges"
+                    ></div>
+
+
+                    <p
+                        id="modal-description"
+                        class="modal-description"
+                    ></p>
+
+
+                    <div
+                        id="modal-details"
+                        class="modal-details"
+                    >
+
+                        <div
+                            class="modal-detail"
+                            data-detail="colour"
+                            hidden
+                        >
+
+                            <span>
+                                Colour
+                            </span>
+
+                            <strong
+                                id="modal-colour"
+                            ></strong>
+
+                        </div>
+
+
+                        <div
+                            class="modal-detail"
+                            data-detail="sizes"
+                            hidden
+                        >
+
+                            <span>
+                                Sizes
+                            </span>
+
+                            <strong
+                                id="modal-sizes"
+                            ></strong>
+
+                        </div>
+
+
+                        <div
+                            class="modal-detail"
+                            data-detail="material"
+                            hidden
+                        >
+
+                            <span>
+                                Material
+                            </span>
+
+                            <strong
+                                id="modal-material"
+                            ></strong>
+
+                        </div>
+
+
+                        <div
+                            class="modal-detail"
+                            data-detail="stock"
+                            hidden
+                        >
+
+                            <span>
+                                Availability
+                            </span>
+
+                            <strong
+                                id="modal-stock"
+                            ></strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="modal-order-area">
+
+                        <a
+                            id="modal-whatsapp"
+                            class="btn btn-primary modal-order-btn"
+                            href="#"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            hidden
+                        >
+                            Order on WhatsApp →
+                        </a>
+
+                        <p
+                            id="modal-order-instruction"
+                            class="order-instruction"
+                        ></p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         JAVASCRIPT
+    ========================== -->
+
+    <script src="script.js"></script>
+
+</body>
+</html>
