@@ -116,14 +116,7 @@ function isValidImageURL(value) {
     const raw = clean(value);
     if (!raw) return false;
     if (raw.startsWith("data:image/")) return true;
-    if (isRelativePath(raw)) return true;
     return isValidURL(raw);
-}
-
-/* Allow images stored in the same repo, e.g. "images/abaya.jpg" */
-function isRelativePath(value) {
-    const raw = clean(value);
-    return /^(\.{0,2}\/)?[\w\-./%()]+\.(jpe?g|png|webp|gif|avif)$/i.test(raw) && !raw.includes("//");
 }
 
 function safeURL(value) {
@@ -136,7 +129,6 @@ function safeImageSrc(value) {
     const raw = clean(value);
     if (!raw) return createPlaceholderImage();
     if (raw.startsWith("data:image/")) return raw;
-    if (isRelativePath(raw)) return raw;
     return isValidURL(raw) ? raw : createPlaceholderImage();
 }
 
@@ -223,22 +215,6 @@ function parseProductsSheet(rows) {
 ========================================================= */
 async function loadSheetData() {
     showPageLoader();
-
-    // Optional local data (demo-data.js) — skips Google Sheets
-    if (window.SENDARE_LOCAL_DATA) {
-        const local = window.SENDARE_LOCAL_DATA;
-        business = parseBusinessSheet(
-            Object.entries(local.business || {}).map(([field, value]) => ({ field, value }))
-        );
-        products = parseProductsSheet(local.products || []);
-        loadBusiness();
-        loadSocialLinks();
-        loadCategories();
-        renderProducts();
-        hideProductError();
-        hidePageLoader();
-        return;
-    }
 
     try {
         const [bizRes, prodRes] = await Promise.all([
@@ -333,10 +309,9 @@ function loadBusiness() {
         hideElement("about-placeholder");
 
         const hero = document.getElementById("hero");
-        const heroImage = isValidImageURL(business["hero image"]) ? business["hero image"] : logo;
         if (hero) {
             hero.style.backgroundImage =
-                `linear-gradient(180deg, rgba(20,16,8,.82), rgba(20,16,8,.6)), url("${safeImageSrc(heroImage)}")`;
+                `linear-gradient(180deg, rgba(20,16,8,.82), rgba(20,16,8,.6)), url("${safeURL(logo)}")`;
             hero.style.backgroundSize = "cover";
             hero.style.backgroundPosition = "center";
         }
@@ -436,7 +411,7 @@ function buildContactActions() {
                 ${ICONS.phone}
                 <span class="action-platform">
                     <small>Call us on</small>
-                    <strong>${escapeHTML(formatPhone(phone))}</strong>
+                    <strong>${escapeHTML(phone)}</strong>
                 </span>
             </a>
         `;
@@ -467,15 +442,6 @@ function buildContactActions() {
     }
 }
 
-
-/* Display Nigerian numbers as 0814 737 1302 */
-function formatPhone(value) {
-    let d = clean(value).replace(/\D/g, "");
-    if (d.startsWith("234")) d = "0" + d.slice(3);
-    else if (d.length === 10) d = "0" + d;
-    if (d.length === 11) return `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
-    return clean(value);
-}
 
 /* =========================================================
    WHATSAPP
@@ -684,21 +650,6 @@ function renderProducts(category = "all") {
 }
 
 
-/* If an image host blocks the image, retry once through an
-   image CDN, then fall back to the placeholder. */
-function attachImageFallback(img) {
-    img.addEventListener("error", function onError() {
-        const src = img.getAttribute("src") || "";
-        if (!img.dataset.retried && /^https?:/i.test(src) && !src.includes("wsrv.nl")) {
-            img.dataset.retried = "1";
-            img.src = `https://wsrv.nl/?url=${encodeURIComponent(src)}&w=800&output=webp`;
-            return;
-        }
-        img.removeEventListener("error", onError);
-        img.src = createPlaceholderImage();
-    });
-}
-
 /* FIX #5 — single paint function used by both paths */
 function paintGrid(list) {
     const grid = document.getElementById("product-grid");
@@ -706,7 +657,11 @@ function paintGrid(list) {
 
     grid.innerHTML = list.map((p, i) => createProductCard(p, i)).join("");
 
-    grid.querySelectorAll("img").forEach(attachImageFallback);
+    grid.querySelectorAll("img").forEach(img => {
+        img.addEventListener("error", () => {
+            img.src = createPlaceholderImage();
+        }, { once: true });
+    });
 }
 
 
