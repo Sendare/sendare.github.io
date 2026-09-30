@@ -6,14 +6,7 @@
 /* =========================================================
    CONFIG
 ========================================================= */
-const SHEET_ID = "1enDv2sHXqOaEj4wNLTxeklj2zsJ3uLeJ7oo4fJijYJk";
-
-const BUSINESS_SHEET_URL =
-    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&headers=0`;
-
-const PRODUCTS_SHEET_URL =
-    `https://opensheet.elk.sh/${SHEET_ID}/Products`;
-
+const SHOP_SLUG = "oum-hidaya";
 const CART_STORAGE_KEY = "sendare.cart.v1";
 
 
@@ -138,42 +131,65 @@ function createPlaceholderImage() {
 /* =========================================================
    SHEET PARSERS
 ========================================================= */
-function parseGVizBusinessResponse(text) {
-    const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/);
-    if (!match) throw new Error("Invalid Business sheet response.");
-    const data = JSON.parse(match[1]);
-    const rows = data?.table?.rows || [];
-    return rows.map(row => ({
-        field: clean(row?.c?.[0]?.v),
-        value: clean(row?.c?.[2]?.v)
-    }));
+function businessFromShop(shop) {
+    const b = shop.business || {};
+    const s = b.socials || {};
+    return {
+        "business name": clean(b.name),
+        "logo": clean(b.logo),
+        "tagline": clean(b.tagline),
+        "description": clean(b.description),
+        "phone": clean(b.phone),
+        "whatsapp": clean(b.whatsapp),
+        "whatsapp business": clean(b.whatsapp),
+        "location": clean(b.location),
+        "delivery": clean(b.delivery),
+        "opening hours": clean(b.openingHours),
+        "payment method": clean(b.paymentMethods),
+        "currency": clean(b.currency),
+        "order instruction": clean(b.orderInstruction),
+        "contact message": clean(b.contactMessage),
+        "instagram": clean(s.instagram),
+        "facebook": clean(s.facebook),
+        "tiktok": clean(s.tiktok),
+        "telegram": clean(s.telegram),
+        "youtube": clean(s.youtube),
+        "x": clean(s.x),
+        "google maps": clean(s.maps),
+        "email": clean(s.email)
+    };
 }
 
-function parseBusinessSheet(rows) {
-    const result = {};
-    if (!Array.isArray(rows)) return result;
-    rows.forEach(row => {
-        if (!row || typeof row !== "object") return;
-        const field = clean(row.field);
-        const value = clean(row.value);
-        if (field) result[lower(field)] = value;
-    });
-    return result;
+function attrText(attributes, key) {
+    const v = attributes ? attributes[key] : "";
+    return Array.isArray(v) ? v.join(", ") : clean(v);
 }
 
-function parseProductsSheet(rows) {
-    if (!Array.isArray(rows)) return [];
-    return rows
-        .filter(row => row && typeof row === "object")
-        .map(row => {
-            const p = {};
-            Object.keys(row).forEach(key => { p[lower(key)] = clean(row[key]); });
-            return p;
-        })
-        .filter(p => hasValue(p["product name"]));
+function productsFromShop(shop) {
+    return (shop.products || []).map(p => {
+        const a = p.attributes || {};
+        const imgs = p.images || [];
+        return {
+            "product name": clean(p.name),
+            "category": clean(p.category),
+            "price": p.price == null ? "" : String(p.price),
+            "old price": p.oldPrice == null ? "" : String(p.oldPrice),
+            "description": clean(p.description),
+            "colour": attrText(a, "colour"),
+            "sizes": attrText(a, "sizes"),
+            "material": attrText(a, "material"),
+            "available": p.available ? "yes" : "no",
+            "stock": p.stock == null ? "" : String(p.stock),
+            "featured": p.featured ? "yes" : "",
+            "new arrival": p.isNew ? "yes" : "",
+            "video": clean(p.video),
+            "img1": clean(imgs[0]),
+            "img2": clean(imgs[1]),
+            "img3": clean(imgs[2]),
+            "img4": clean(imgs[3])
+        };
+    }).filter(p => hasValue(p["product name"]));
 }
-
-
 /* =========================================================
    LOAD SHEET DATA
 ========================================================= */
@@ -181,20 +197,10 @@ async function loadSheetData() {
     showPageLoader();
 
     try {
-        const [bizRes, prodRes] = await Promise.all([
-            fetch(BUSINESS_SHEET_URL),
-            fetch(PRODUCTS_SHEET_URL)
-        ]);
+        const shop = await loadShop(SHOP_SLUG);
 
-        if (!bizRes.ok) throw new Error("Business sheet failed.");
-        if (!prodRes.ok) throw new Error("Products sheet failed.");
-
-        const businessText = await bizRes.text();
-        const businessRows = parseGVizBusinessResponse(businessText);
-        const productRows = await prodRes.json();
-
-        business = parseBusinessSheet(businessRows);
-        products = parseProductsSheet(productRows);
+        business = businessFromShop(shop);
+        products = productsFromShop(shop);
 
         loadBusiness();
         loadSocialLinks();
@@ -208,7 +214,7 @@ async function loadSheetData() {
         initReveal();
 
     } catch (error) {
-        console.error("Sheet error:", error);
+        console.error("Shop error:", error);
         showProductError();
         hidePageLoader();
     }
