@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E5A4A">
+<meta name="robots" content="noindex">
+<title>Shop manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1EF; --surface:#fff; --ink:#13201D; --muted:#5D6B67; --line:#D3DCD9;
+  --brand:#0E5A4A; --brand-dark:#0A4538; --accent:#F0B429; --danger:#B3261E;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Figtree',system-ui,sans-serif}
+body.locked{overflow:hidden}
+h1,h2,h3,.brand strong{font-family:'Bricolage Grotesque','Figtree',sans-serif;letter-spacing:-.01em;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted)}
+
+/* buttons */
+.btn{min-height:46px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:600}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-dark)}
+.btn.danger{color:var(--danger);border-color:transparent;background:transparent}
+.btn.block{width:100%}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.link{background:none;border:0;color:var(--brand);font-weight:600;padding:8px;min-height:44px}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login-card{background:#fff;border-radius:18px;padding:28px 22px;width:100%;max-width:400px;border:1px solid var(--line)}
+.login-card h1{font-size:30px;margin-bottom:4px}
+.login-card .sub{margin:0 0 20px;color:var(--muted)}
+.err{color:var(--danger);min-height:1.4em;margin:8px 0;font-size:14px}
+
+/* top bar */
+.top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.top-in{display:flex;align-items:center;gap:12px;min-height:60px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.brand img,.mark{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none}
+.mark{display:grid;place-items:center;background:var(--brand);color:#fff;font-weight:700}
+.brand strong{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#biz-switch{max-width:160px;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff}
+.tabs{display:flex;gap:4px;border-top:1px solid var(--line)}
+.tab{background:none;border:0;border-bottom:3px solid transparent;padding:12px 14px;font-weight:600;color:var(--muted);min-height:48px}
+.tab[aria-selected="true"]{color:var(--brand);border-color:var(--brand)}
+
+main{padding:18px 0 90px}
+
+/* product list */
+.bar{display:flex;gap:10px;margin-bottom:10px}
+.bar input{flex:1;min-width:0}
+.count{margin:0 0 12px;color:var(--muted);font-size:14px}
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.prow{background:#fff;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;gap:6px;padding-right:12px}
+.pmain{flex:1;min-width:0;display:flex;align-items:center;gap:12px;background:none;border:0;padding:10px;text-align:left}
+.thumb{width:72px;height:72px;border-radius:10px;overflow:hidden;background:var(--bg);flex:none;display:grid;place-items:center}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.noimg{font-size:12px;color:var(--muted);text-align:center;padding:4px}
+.pinfo{display:flex;flex-direction:column;min-width:0}
+.pinfo strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pinfo .meta{font-size:14px;color:var(--muted)}
+.pinfo .price{font-weight:600}
+.pinfo del{color:var(--muted);font-weight:400;margin-left:6px;font-size:14px}
+.empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:32px 20px;text-align:center;color:var(--muted)}
+
+/* switch */
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px;position:relative}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.track{width:42px;height:24px;border-radius:99px;background:#B9C4C0;position:relative;transition:background .15s;flex:none}
+.track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked + .track{background:var(--brand)}
+.switch input:checked + .track::after{transform:translateX(18px)}
+.switch input:focus-visible + .track{outline:3px solid var(--accent)}
+.switch .lbl{font-size:14px}
+.prow .switch{flex-direction:column;gap:2px;min-height:0;padding:6px 0}
+.prow .switch .lbl{font-size:12px;color:var(--muted)}
+
+/* fields */
+.field{display:block;margin:0 0 14px;border:0;padding:0;min-width:0}
+.field > span,.field > legend{display:block;font-size:14px;font-weight:600;margin-bottom:4px;padding:0}
+.field small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+input[type=text],input[type=email],input[type=tel],input[type=url],input[type=number],input[type=search],input[type=password],select,textarea{
+  width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+textarea{min-height:92px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.switches{display:flex;flex-wrap:wrap;gap:4px 22px;margin:2px 0 14px}
+.section-title{font-size:18px;margin:20px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip input{position:absolute;opacity:0;width:1px;height:1px}
+.chip span{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:#fff;cursor:pointer;font-size:15px;font-weight:500}
+.chip input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip input:focus-visible + span{outline:3px solid var(--accent)}
+.colorrow{display:flex;gap:8px}
+.colorrow input[type=color]{width:52px;min-height:46px;padding:3px;border:1px solid var(--line);border-radius:10px;background:#fff}
+
+/* shop info */
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;max-width:720px}
+.logo-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.logo-row img,.logo-ph{width:76px;height:76px;border-radius:50%;object-fit:cover;background:var(--bg);display:grid;place-items:center;font-size:12px;color:var(--muted);text-align:center}
+
+/* sheet (editor) */
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(19,32,29,.55);display:flex;align-items:flex-end;justify-content:center}
+.panel{background:#fff;width:100%;height:100%;display:flex;flex-direction:column}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 16px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:20px}
+.panel-body{overflow:auto;padding:16px;flex:1;-webkit-overflow-scrolling:touch}
+.panel-foot{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#fff}
+.panel-foot .primary{flex:1}
+@media(min-width:720px){
+  .sheet{align-items:center}
+  .panel{width:680px;height:auto;max-height:92vh;border-radius:18px;overflow:hidden}
+}
+
+/* photos */
+.imgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;margin-bottom:6px}
+.tile{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--bg);border:1px solid var(--line)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.badge{position:absolute;top:6px;left:6px;background:var(--accent);color:#3a2b00;font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px}
+.tile-tools{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(19,32,29,.72)}
+.tile-tools button{flex:1;min-height:36px;background:none;border:0;color:#fff;font-size:18px}
+.tile-tools button:disabled{opacity:.3}
+.tile.add{border:2px dashed var(--brand);background:#F4F8F6;color:var(--brand);font-weight:600;display:grid;place-items:center;text-align:center;padding:6px}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;z-index:100;max-width:90vw;font-size:15px;display:none}
+#toast.show{display:block}
+#toast.bad{background:var(--danger)}
+.center{min-height:60vh;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/data.js"></script>
+<script>
+(() => {
+'use strict';
+
+const BUCKET = 'product-images';
+const MAX_PHOTOS = 10;
+const app = document.getElementById('app');
+
+if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
+  app.innerHTML = '<div class="center"><p>Set your Supabase URL and key in data.js first.</p></div>';
+  return;
+}
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const state = { user: null, bizList: [], biz: null, fields: [], products: [], tab: 'products', query: '' };
+let ed = null;        // product editor state
+let logoPending = null;
+let sheetEl = null;
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = v => { const s = String(v ?? '').replace(/,/g, '').trim(); if (s === '') return null; const n = Number(s); return Number.isNaN(n) ? null : n; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const SYM = { naira:'₦', ngn:'₦', dollar:'$', usd:'$', pound:'£', gbp:'£', euro:'€', eur:'€', riyal:'﷼', sar:'﷼', dirham:'د.إ', aed:'د.إ' };
+const sym = () => { const f = (state.biz?.currency || '').split(',')[0].trim().toLowerCase(); return SYM[f] || (f ? f + ' ' : '₦'); };
+const money = n => n == null ? '' : sym() + Number(n).toLocaleString('en-NG');
+
+let toastTimer;
+function toast(msg, bad) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 3200);
+}
+function fail(e) {
+  console.error(e);
+  const m = (e && e.message) || 'Something went wrong.';
+  if (/jwt|token|expired/i.test(m)) { toast('Session expired. Please sign in again.', true); renderLogin(); return; }
+  toast(m, true);
+}
+
+/* ---------- images ---------- */
+async function loadBitmap(file) {
+  if ('createImageBitmap' in window) {
+    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { /* fall through */ }
+  }
+  return new Promise((res, rej) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(u); res(img); };
+    img.onerror = () => rej(new Error('Could not read that image.'));
+    img.src = u;
+  });
+}
+async function compress(file, max = 1200, q = 0.82) {
+  const bmp = await loadBitmap(file);
+  const bw = bmp.naturalWidth || bmp.width, bh = bmp.naturalHeight || bmp.height;
+  const scale = Math.min(1, max / Math.max(bw, bh));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bw * scale); c.height = Math.round(bh * scale);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  let blob = await new Promise(r => c.toBlob(r, 'image/webp', q));
+  if (!blob || blob.type !== 'image/webp') blob = await new Promise(r => c.toBlob(r, 'image/jpeg', q));
+  if (!blob) throw new Error('Could not prepare that image.');
+  return blob;
+}
+async function uploadImage(blob) {
+  const ext = blob.type === 'image/webp' ? 'webp' : 'jpg';
+  const path = `${state.biz.id}/${uid()}.${ext}`;
+  const { error } = await db.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, cacheControl: '31536000', upsert: false });
+  if (error) throw error;
+  return { path, url: db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl };
+}
+function pathFromUrl(url) {
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const i = (url || '').indexOf(marker);
+  return i < 0 ? null : decodeURIComponent(url.slice(i + marker.length).split('?')[0]);
+}
+async function removeFromStorage(urls) {
+  const paths = urls.map(pathFromUrl).filter(Boolean);
+  if (paths.length) { try { await db.storage.from(BUCKET).remove(paths); } catch (e) { console.warn(e); } }
+}
+
+/* ---------- login / account ---------- */
+function renderLogin(msg = '') {
+  closeSheet();
+  app.innerHTML = `
+  <div class="login"><div class="login-card">
+    <h1>Shop manager</h1>
+    <p class="sub">Sign in to update your products, prices, and photos.</p>
+    <form id="login-form">
+      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="err" id="login-err">${esc(msg)}</p>
+      <button class="btn primary block" type="submit">Sign in</button>
+    </form>
+  </div></div>`;
+  $('#login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const { data, error } = await db.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
+    if (error) { $('#login-err').textContent = 'Wrong email or password.'; btn.disabled = false; btn.textContent = 'Sign in'; return; }
+    loadAccount(data.user);
+  });
+}
+
+function renderMessage(text) {
+  app.innerHTML = `<div class="center"><div><p>${esc(text)}</p><button class="btn" data-act="signout">Sign out</button></div></div>`;
+}
+
+async function loadAccount(user) {
+  state.user = user;
+  app.innerHTML = '<div class="center">Loading…</div>';
+  const { data: links, error } = await db.from('business_users').select('business_id').eq('user_id', user.id);
+  if (error) return fail(error);
+  if (!links.length) return renderMessage('This account is not linked to a shop yet. Ask your website provider to link it.');
+  const ids = links.map(l => l.business_id);
+  const { data: list } = await db.from('businesses').select('id,name').in('id', ids);
+  state.bizList = list || [];
+  let id = localStorage.getItem('shopmgr_biz');
+  if (!ids.includes(id)) id = ids[0];
+  await loadBusiness(id);
+}
+
+async function loadBusiness(id) {
+  app.innerHTML = '<div class="center">Loading…</div>';
+  const [b, f, p] = await Promise.all([
+    db.from('businesses').select('*').eq('id', id).single(),
+    db.from('business_fields').select('*').eq('business_id', id).order('sort_order'),
+    db.from('products').select('*').eq('business_id', id).order('sort_order').order('created_at', { ascending: false })
+  ]);
+  if (b.error) return fail(b.error);
+  state.biz = b.data; state.fields = f.data || []; state.products = p.data || [];
+  localStorage.setItem('shopmgr_biz', id);
+  renderShell();
+}
+
+async function refreshProducts() {
+  const { data, error } = await db.from('products').select('*').eq('business_id', state.biz.id).order('sort_order').order('created_at', { ascending: false });
+  if (error) return fail(error);
+  state.products = data;
+  if (state.tab === 'products') paintList();
+}
+
+/* ---------- shell ---------- */
+function renderShell() {
+  const b = state.biz;
+  app.innerHTML = `
+  <header class="top">
+    <div class="wrap top-in">
+      <div class="brand">${b.logo_url ? `<img src="${esc(b.logo_url)}" alt="">` : `<span class="mark">${esc((b.name || '?')[0])}</span>`}<strong>${esc(b.name)}</strong></div>
+      ${state.bizList.length > 1 ? `<select id="biz-switch" aria-label="Switch shop">${state.bizList.map(x => `<option value="${x.id}" ${x.id === b.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>` : ''}
+      <button class="link" data-act="signout">Sign out</button>
+    </div>
+    <div class="wrap"><div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-act="tab" data-tab="products" aria-selected="${state.tab === 'products'}">Products</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="shop" aria-selected="${state.tab === 'shop'}">Shop info</button>
+    </div></div>
+  </header>
+  <main><div class="wrap" id="view"></div></main>`;
+  renderView();
+}
+
+function renderView() {
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === state.tab)));
+  state.tab === 'products' ? renderProducts() : renderShop();
+}
+
+/* ---------- products list ---------- */
+function renderProducts() {
+  $('#view').innerHTML = `
+    <div class="bar">
+      <input id="search" type="search" placeholder="Search products" value="${esc(state.query)}" aria-label="Search products">
+      <button class="btn primary" data-act="new">Add product</button>
+    </div>
+    <p class="count" id="count"></p>
+    <div id="list"></div>`;
+  paintList();
+}
+
+function rowHTML(p) {
+  const img = (p.images || [])[0];
+  const onSale = p.old_price != null && p.price != null && p.old_price > p.price;
+  return `<li class="prow">
+    <button class="pmain" data-act="edit" data-id="${p.id}">
+      <span class="thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="noimg">No photo</span>'}</span>
+      <span class="pinfo">
+        <strong>${esc(p.name)}</strong>
+        <span class="meta">${esc(p.category || 'No category')}</span>
+        <span class="price">${p.price != null ? money(p.price) : 'No price'}${onSale ? `<del>${money(p.old_price)}</del>` : ''}</span>
+      </span>
+    </button>
+    <label class="switch"><input type="checkbox" data-act="avail" data-id="${p.id}" ${p.is_available ? 'checked' : ''}><span class="track"></span><span class="lbl">${p.is_available ? 'Available' : 'Sold out'}</span></label>
+  </li>`;
+}
+
+function paintList() {
+  const q = state.query.toLowerCase();
+  const list = state.products.filter(p => !q || p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
+  const c = $('#count'); if (c) c.textContent = `${list.length} of ${state.products.length} products`;
+  const box = $('#list'); if (!box) return;
+  box.innerHTML = list.length
+    ? `<ul class="plist">${list.map(rowHTML).join('')}</ul>`
+    : `<div class="empty">${state.products.length ? 'No products match your search.' : 'No products yet. Add your first product and it will appear on your website.'}</div>`;
+}
+
+async function toggleAvail(id, checked, input) {
+  const p = state.products.find(x => x.id === id); if (!p) return;
+  const { data, error } = await db.from('products').update({ is_available: checked }).eq('id', id).select('id');
+  if (error || !data || !data.length) { input.checked = !checked; return fail(error || new Error('You are not allowed to change this product.')); }
+  p.is_available = checked;
+  input.closest('.switch').querySelector('.lbl').textContent = checked ? 'Available' : 'Sold out';
+  toast(checked ? 'Marked available' : 'Marked sold out');
+}
+
+/* ---------- sheet ---------- */
+function openSheet(html) {
+  closeSheet();
+  sheetEl = document.createElement('div');
+  sheetEl.className = 'sheet';
+  sheetEl.innerHTML = `<div class="panel" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(sheetEl);
+  document.body.classList.add('locked');
+  history.pushState({ sheet: 1 }, '');
+  sheetEl.addEventListener('click', e => { if (e.target === sheetEl) requestClose(); });
+}
+function requestClose() { if (history.state && history.state.sheet) history.back(); else closeSheet(); }
+function closeSheet() {
+  if (!sheetEl) return;
+  if (ed) ed.images.forEach(i => i.blob && URL.revokeObjectURL(i.preview));
+  sheetEl.remove(); sheetEl = null; ed = null;
+  document.body.classList.remove('locked');
+}
+window.addEventListener('popstate', () => { if (sheetEl) closeSheet(); });
+
+/* ---------- product editor ---------- */
+function attrField(f, val) {
+  const key = esc(f.key), label = esc(f.label);
+  const opts = Array.isArray(f.options) ? f.options : [];
+  switch (f.type) {
+    case 'number':
+      return `<label class="field"><span>${label}</span><input type="number" inputmode="decimal" data-attr="${key}" data-type="number" value="${esc(val ?? '')}"></label>`;
+    case 'select':
+      return `<label class="field"><span>${label}</span><select data-attr="${key}" data-type="select"><option value="">Not set</option>${opts.map(o => `<option ${val === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+    case 'multiselect': {
+      const sel = Array.isArray(val) ? val : [];
+      return `<fieldset class="field"><legend>${label}</legend><div class="chips" data-attr="${key}" data-type="multiselect">${opts.map(o => `<label class="chip"><input type="checkbox" value="${esc(o)}" ${sel.includes(o) ? 'checked' : ''}><span>${esc(o)}</span></label>`).join('')}</div></fieldset>`;
+    }
+    case 'boolean':
+      return `<div class="field"><label class="switch"><input type="checkbox" data-attr="${key}" data-type="boolean" ${val ? 'checked' : ''}><span class="track"></span><span class="lbl">${label}</span></label></div>`;
+    case 'color':
+      return `<label class="field"><span>${label}</span><div class="colorrow"><input type="color" data-colorpick aria-label="Pick colour" value="${/^#[0-9a-f]{6}$/i.test(val || '') ? val : '#888888'}"><input type="text" data-attr="${key}" data-type="text" placeholder="Red, or pick a colour" value="${esc(val ?? '')}"></div></label>`;
+    default:
+      return `<label class="field"><span>${label}</span><input type="text" data-attr="${key}" data-type="text" value="${esc(Array.isArray(val) ? val.join(', ') : (val ?? ''))}"></label>`;
+  }
+}
+
+function openEditor(id) {
+  const p = id ? state.products.find(x => x.id === id) : null;
+  ed = { id: p ? p.id : null, images: (p?.images || []).map(u => ({ url: u, preview: u })), removed: [], p };
+  const v = p || { name: '', category: '', price: null, old_price: null, description: '', is_available: true, is_featured: false, is_new: false, stock: null, video_url: '', attributes: {} };
+  const attrs = v.attributes || {};
+  const cats = [...new Set(state.products.map(x => x.category).filter(Boolean))];
+
+  openSheet(`
+    <div class="panel-head"><h2>${p ? 'Edit product' : 'Add product'}</h2><button class="link" data-act="close">Close</button></div>
+    <div class="panel-body">
+      <div class="field"><span style="font-weight:600;font-size:14px">Photos</span>
+        <small>The first photo is the main one. Tap “Add photos” as many times as you like.</small></div>
+      <div class="imgs" id="imgs"></div>
+      <input type="file" id="file" accept="image/*" multiple hidden>
+
+      <h3 class="section-title">Details</h3>
+      <label class="field"><span>Name</span><input type="text" data-f="name" value="${esc(v.name)}" maxlength="120"></label>
+      <label class="field"><span>Category</span><input type="text" data-f="category" list="cats" value="${esc(v.category || '')}" placeholder="Shoes, Bags, Cakes…"><datalist id="cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+      <div class="row2">
+        <label class="field"><span>Price (${esc(sym().trim())})</span><input type="text" inputmode="decimal" data-f="price" value="${v.price ?? ''}"></label>
+        <label class="field"><span>Old price</span><input type="text" inputmode="decimal" data-f="old_price" value="${v.old_price ?? ''}"><small>Shows as a crossed-out price.</small></label>
+      </div>
+      <label class="field"><span>Description</span><textarea data-f="description">${esc(v.description || '')}</textarea></label>
+      <div class="switches">
+        <label class="switch"><input type="checkbox" data-f="is_available" ${v.is_available ? 'checked' : ''}><span class="track"></span><span class="lbl">Available</span></label>
+        <label class="switch"><input type="checkbox" data-f="is_featured" ${v.is_featured ? 'checked' : ''}><span class="track"></span><span class="lbl">Featured</span></label>
+        <label class="switch"><input type="checkbox" data-f="is_new" ${v.is_new ? 'checked' : ''}><span class="track"></span><span class="lbl">New arrival</span></label>
+      </div>
+      <label class="field"><span>Stock count (optional)</span><input type="text" inputmode="numeric" data-f="stock" value="${v.stock ?? ''}"><small>Leave empty if you don't count stock.</small></label>
+
+      ${state.fields.length ? `<h3 class="section-title">More details</h3>${state.fields.map(f => attrField(f, attrs[f.key])).join('')}` : ''}
+
+      <label class="field"><span>Video link (optional)</span><input type="url" data-f="video_url" value="${esc(v.video_url || '')}" placeholder="https://"></label>
+    </div>
+    <div class="panel-foot">
+      ${p ? '<button class="btn danger" data-act="delete">Delete</button>' : ''}
+      <button class="btn primary" data-act="save">Save product</button>
+    </div>`);
+  paintImages();
+}
+
+function paintImages() {
+  const box = $('#imgs'); if (!box || !ed) return;
+  box.innerHTML = ed.images.map((im, i) => `
+    <div class="tile">
+      <img src="${esc(im.preview)}" alt="Photo ${i + 1}">
+      ${i === 0 ? '<span class="badge">Main</span>' : ''}
+      <div class="tile-tools">
+        <button type="button" data-act="img-left" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Move photo earlier">‹</button>
+        <button type="button" data-act="img-right" data-i="${i}" ${i === ed.images.length - 1 ? 'disabled' : ''} aria-label="Move photo later">›</button>
+        <button type="button" data-act="img-del" data-i="${i}" aria-label="Remove photo">✕</button>
+      </div>
+    </div>`).join('') +
+    (ed.images.length < MAX_PHOTOS ? '<button type="button" class="tile add" data-act="img-add">+ Add photos</button>' : '');
+}
+
+async function addFiles(files) {
+  if (!ed) return;
+  const room = MAX_PHOTOS - ed.images.length;
+  const picked = [...files].filter(f => f.type.startsWith('image/')).slice(0, room);
+  if (files.length > room) toast(`You can add up to ${MAX_PHOTOS} photos per product.`, true);
+  if (!picked.length) return;
+  toast('Preparing photos…');
+  for (const f of picked) {
+    try {
+      const blob = await compress(f);
+      if (!ed) return;
+      ed.images.push({ blob, preview: URL.createObjectURL(blob) });
+      paintImages();
+    } catch (e) { fail(e); }
+  }
+  toast('Photos added. Save to upload them.');
+}
+
+function readAttrs() {
+  const existing = ed.p?.attributes || {};
+  const known = new Set(state.fields.map(f => f.key));
+  const out = {};
+  Object.keys(existing).forEach(k => { if (!known.has(k)) out[k] = existing[k]; });
+  sheetEl.querySelectorAll('[data-attr]').forEach(el => {
+    const key = el.dataset.attr, type = el.dataset.type;
+    let v;
+    if (type === 'multiselect') v = [...el.querySelectorAll('input:checked')].map(i => i.value);
+    else if (type === 'boolean') v = el.checked ? true : '';
+    else if (type === 'number') v = num(el.value);
+    else v = el.value.trim();
+    if (v === '' || v == null || (Array.isArray(v) && !v.length)) return;
+    out[key] = v;
+  });
+  return out;
+}
+
+async function saveProduct(btn) {
+  const f = k => $(`[data-f="${k}"]`, sheetEl);
+  const name = f('name').value.trim();
+  if (!name) { toast('Enter a product name.', true); f('name').focus(); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const uploaded = [];
+  try {
+    const urls = [];
+    for (const im of ed.images) {
+      if (im.url) { urls.push(im.url); continue; }
+      const up = await uploadImage(im.blob);
+      uploaded.push(up.path); urls.push(up.url);
+    }
+    const stock = num(f('stock').value);
+    const row = {
+      business_id: state.biz.id, name,
+      category: f('category').value.trim() || null,
+      price: num(f('price').value), old_price: num(f('old_price').value),
+      description: f('description').value.trim() || null,
+      is_available: f('is_available').checked, is_featured: f('is_featured').checked, is_new: f('is_new').checked,
+      stock: stock == null ? null : Math.round(stock),
+      video_url: f('video_url').value.trim() || null,
+      images: urls, attributes: readAttrs()
+    };
+    const q = ed.id ? db.from('products').update(row).eq('id', ed.id) : db.from('products').insert(row);
+    const { data, error } = await q.select('id');
+    if (error) throw error;
+    if (!data || !data.length) throw new Error('You are not allowed to save this product.');
+    removeFromStorage(ed.removed);
+    await refreshProducts();
+    toast('Product saved');
+    requestClose();
+  } catch (e) {
+    if (uploaded.length) { try { await db.storage.from(BUCKET).remove(uploaded); } catch (_) {} }
+    fail(e);
+    btn.disabled = false; btn.textContent = 'Save product';
+  }
+}
+
+async function deleteProduct(btn) {
+  const p = ed.p; if (!p) return;
+  if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+  btn.disabled = true;
+  const { data, error } = await db.from('products').delete().eq('id', p.id).select('id');
+  if (error || !data || !data.length) { btn.disabled = false; return fail(error || new Error('You are not allowed to delete this product.')); }
+  removeFromStorage(p.images || []);
+  await refreshProducts();
+  toast('Product deleted');
+  requestClose();
+}
+
+/* ---------- shop info ---------- */
+const INFO = [
+  ['name', 'Shop name', 'text'], ['tagline', 'Tagline', 'text'], ['description', 'About the shop', 'textarea'],
+  ['phone', 'Phone number', 'tel'], ['whatsapp', 'WhatsApp number', 'tel', 'Digits only, with country code. Example: 2348144176298'],
+  ['location', 'Location', 'text'], ['delivery', 'Delivery', 'text'], ['opening_hours', 'Opening hours', 'text'],
+  ['payment_methods', 'Payment methods', 'text', 'Example: bank, cash'], ['currency', 'Currency', 'text', 'Example: Naira'],
+  ['order_instruction', 'Order instruction', 'text'], ['contact_message', 'Contact message', 'text']
+];
+const SOCIALS = [
+  ['instagram', 'Instagram link'], ['facebook', 'Facebook link'], ['tiktok', 'TikTok link'], ['telegram', 'Telegram link'],
+  ['youtube', 'YouTube link'], ['x', 'X link'], ['maps', 'Google Maps link'], ['email', 'Email address']
+];
+
+function renderShop() {
+  const b = state.biz, s = b.socials || {};
+  logoPending = null;
+  $('#view').innerHTML = `
+  <div class="card">
+    <div class="logo-row">
+      <div id="logo-box">${b.logo_url ? `<img src="${esc(b.logo_url)}" alt="Logo">` : '<div class="logo-ph">No logo</div>'}</div>
+      <div><button class="btn" data-act="logo-pick" type="button">Change logo</button></div>
+      <input type="file" id="logo-file" accept="image/*" hidden>
+    </div>
+    ${INFO.map(([k, label, type, hint]) => type === 'textarea'
+      ? `<label class="field"><span>${label}</span><textarea data-b="${k}">${esc(b[k] || '')}</textarea></label>`
+      : `<label class="field"><span>${label}</span><input type="${type}" data-b="${k}" value="${esc(b[k] || '')}">${hint ? `<small>${esc(hint)}</small>` : ''}</label>`).join('')}
+    <h3 class="section-title">Links</h3>
+    ${SOCIALS.map(([k, label]) => `<label class="field"><span>${label}</span><input type="text" data-s="${k}" value="${esc(s[k] || '')}"></label>`).join('')}
+    <button class="btn primary block" data-act="save-shop">Save shop info</button>
+  </div>`;
+}
+
+async function saveShop(btn) {
+  const row = {};
+  document.querySelectorAll('[data-b]').forEach(el => { row[el.dataset.b] = el.value.trim() || null; });
+  if (!row.name) { toast('Enter the shop name.', true); return; }
+  if (row.whatsapp) row.whatsapp = row.whatsapp.replace(/\D/g, '');
+  const socials = { ...(state.biz.socials || {}) };
+  document.querySelectorAll('[data-s]').forEach(el => {
+    let v = el.value.trim();
+    if (v && el.dataset.s !== 'email' && !/^https?:\/\//i.test(v)) v = 'https://' + v;
+    if (v) socials[el.dataset.s] = v; else delete socials[el.dataset.s];
+  });
+  row.socials = socials;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  let uploadedPath = null;
+  try {
+    const oldLogo = state.biz.logo_url;
+    if (logoPending) { const up = await uploadImage(logoPending); uploadedPath = up.path; row.logo_url = up.url; }
+    const { data, error } = await db.from('businesses').update(row).eq('id', state.biz.id).select('*');
+    if (error) throw error;
+    if (!data || !data.length) throw new Error('You are not allowed to change this shop.');
+    if (logoPending && oldLogo) removeFromStorage([oldLogo]);
+    state.biz = data[0];
+    const item = state.bizList.find(x => x.id === state.biz.id); if (item) item.name = state.biz.name;
+    toast('Shop info saved');
+    renderShell();
+  } catch (e) {
+    if (uploadedPath) { try { await db.storage.from(BUCKET).remove([uploadedPath]); } catch (_) {} }
+    fail(e); btn.disabled = false; btn.textContent = 'Save shop info';
+  }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  switch (t.dataset.act) {
+    case 'new': openEditor(null); break;
+    case 'edit': openEditor(t.dataset.id); break;
+    case 'tab': state.tab = t.dataset.tab; renderView(); break;
+    case 'signout': await db.auth.signOut(); renderLogin(); break;
+    case 'close': requestClose(); break;
+    case 'save': saveProduct(t); break;
+    case 'delete': deleteProduct(t); break;
+    case 'img-add': $('#file').click(); break;
+    case 'img-left': { const i = +t.dataset.i; [ed.images[i - 1], ed.images[i]] = [ed.images[i], ed.images[i - 1]]; paintImages(); break; }
+    case 'img-right': { const i = +t.dataset.i; [ed.images[i + 1], ed.images[i]] = [ed.images[i], ed.images[i + 1]]; paintImages(); break; }
+    case 'img-del': {
+      const i = +t.dataset.i, im = ed.images[i];
+      if (im.url) ed.removed.push(im.url); else URL.revokeObjectURL(im.preview);
+      ed.images.splice(i, 1); paintImages(); break;
+    }
+    case 'logo-pick': $('#logo-file').click(); break;
+    case 'save-shop': saveShop(t); break;
+  }
+});
+
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.dataset.act === 'avail') return toggleAvail(t.dataset.id, t.checked, t);
+  if (t.id === 'file') { const files = [...t.files]; t.value = ''; return addFiles(files); }
+  if (t.id === 'logo-file') {
+    const f = t.files[0]; t.value = ''; if (!f) return;
+    try {
+      logoPending = await compress(f, 600, 0.85);
+      $('#logo-box').innerHTML = `<img src="${URL.createObjectURL(logoPending)}" alt="New logo">`;
+      toast('Logo ready. Save shop info to apply it.');
+    } catch (err) { fail(err); }
+    return;
+  }
+  if (t.id === 'biz-switch') { state.tab = 'products'; state.query = ''; loadBusiness(t.value); }
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'search') { state.query = t.value; paintList(); }
+  if (t.hasAttribute('data-colorpick')) {
+    const names = { '#ff0000': 'Red' };
+    t.nextElementSibling.value = names[t.value.toLowerCase()] || t.value;
+  }
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetEl) requestClose(); });
+
+/* ---------- start ---------- */
+db.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') renderLogin(); });
+(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  session ? loadAccount(session.user) : renderLogin();
+})();
+})();
+</script>
+</body>
+</html>
