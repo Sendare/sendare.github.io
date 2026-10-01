@@ -240,11 +240,11 @@ function renderBusiness() {
    HERO
 ========================================================= */
 function renderHero() {
-    const name    = BUSINESS.name || "";
-    const tagline = BUSINESS.tagline || "";
-    const desc    = BUSINESS.description || "";
+    const name     = BUSINESS.name || "";
+    const tagline  = BUSINESS.tagline || "";
+    const desc     = BUSINESS.description || "";
     const location = BUSINESS.location || "";
-    const logo    = BUSINESS.logo || "";
+    const logo     = BUSINESS.logo || "";
 
     $("#hero-name").textContent    = name;
     $("#hero-tagline").textContent = tagline;
@@ -261,16 +261,34 @@ function renderHero() {
         wa.hidden = false;
     }
 
-    // Hero panel — use shop's own logo
+    // Logo watermark behind the hero text — the "that's my site" moment
+    const bg = $("#hero-logo-bg");
+    if (bg) {
+        if (isValidUrl(logo)) {
+            bg.style.backgroundImage = `url("${logo}")`;
+            bg.hidden = false;
+        } else {
+            bg.hidden = true;
+        }
+    }
+
+    // Hero panel — the actual logo inside the gold frame, shown whole
     if (isValidUrl(logo)) {
         const img = $("#hero-logo");
         img.src = logo;
         img.alt = name;
         img.hidden = false;
-        img.onerror = () => { img.hidden = true; };
-        $("#hero-monogram").textContent = "";
+        img.onerror = () => {
+            img.hidden = true;
+            const mono = $("#hero-monogram");
+            if (mono) mono.textContent = initials(name);
+        };
+        const mono = $("#hero-monogram");
+        if (mono) mono.textContent = "";
     } else {
-        $("#hero-monogram").textContent = initials(name);
+        $("#hero-logo").hidden = true;
+        const mono = $("#hero-monogram");
+        if (mono) mono.textContent = initials(name);
     }
 }
 
