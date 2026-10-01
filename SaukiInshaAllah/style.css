@@ -92,7 +92,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
 /* =========================
    AMBIENT TEXTILE BACKDROP
-   NOTE: no mask-image. Fixed + mask is expensive on scroll.
 ========================= */
 .bg-textile {
     position: fixed;
@@ -254,7 +253,7 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
 
 /* =========================================================
-   HEADER — no backdrop-filter (huge scroll win)
+   HEADER
 ========================================================= */
 .site-header {
     position: sticky;
@@ -434,7 +433,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
     pointer-events: none;
 }
 
-/* Logo watermark behind the text — this is what makes it feel like THEIR site */
 .hero-logo-bg {
     position: absolute;
     inset: 0;
@@ -610,7 +608,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
     text-shadow: 0 0 60px rgba(209, 165, 69, 0.55);
 }
 
-/* Logo shown fully inside the frame — not cropped */
 .hero-logo {
     position: absolute;
     inset: 32px;
@@ -1180,7 +1177,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
 .modal.active { opacity: 1; visibility: visible; }
 
-/* Solid backdrop — no blur (perf) */
 .modal-backdrop {
     position: absolute;
     inset: 0;
@@ -1221,22 +1217,47 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
     border-right: 1px solid var(--line);
 }
 
+/* ---------------------------------------------------
+   MAIN IMAGE — fixed square box, whole photo visible
+   - contain (not cover) so nothing crops
+   - grid+place-items so the image sits centred with
+     letterboxing that looks intentional
+   - the frame NEVER grows because of thumbnails
+--------------------------------------------------- */
 .gallery-main {
     position: relative;
     aspect-ratio: 1;
     overflow: hidden;
     background: var(--paper);
     border: 1px solid var(--line);
+    display: grid;
+    place-items: center;
+    padding: 10px;
 }
 
-.gallery-main img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-main img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+}
 
+/* ---------------------------------------------------
+   THUMBNAILS — fixed-height horizontal strip
+   - nowrap + fixed height = the strip itself never
+     grows, so the main image box above stays put
+   - overflow-x: auto so many thumbs scroll sideways
+--------------------------------------------------- */
 .gallery-thumbs {
     display: flex;
+    flex-wrap: nowrap;
     gap: 8px;
     margin-top: 12px;
     overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
+    height: 66px;
+    align-items: center;
 }
 
 .gallery-thumbs::-webkit-scrollbar { display: none; }
@@ -1400,7 +1421,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
 .drawer.active { opacity: 1; visibility: visible; }
 
-/* Solid backdrop — no blur */
 .drawer-backdrop {
     position: absolute;
     inset: 0;
@@ -1693,7 +1713,6 @@ a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transpar
 
     .nav { display: none; }
 
-    /* Hide logo watermark on mobile — small screens, no visible benefit, tiny perf cost */
     .hero-logo-bg { display: none; }
 
     .hero { padding: 70px 0 80px; min-height: 0; }
