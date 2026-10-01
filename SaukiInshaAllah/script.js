@@ -14,12 +14,12 @@ const CART_KEY  = `${SHOP_SLUG}.cart.v1`;
 /* =========================================================
    STATE
 ========================================================= */
-let BUSINESS   = null;   // shop.business
-let FIELDS     = [];     // shop.fields
-let PRODUCTS   = [];     // shop.products
-let CATEGORIES = [];     // shop.categories
+let BUSINESS   = null;
+let FIELDS     = [];
+let PRODUCTS   = [];
+let CATEGORIES = [];
 
-let CART = [];           // [{key, id, name, price, image, qty, options}]
+let CART = [];
 
 let VIEW = {
     category: "all",
@@ -134,6 +134,24 @@ function productImage(p) {
 
 
 /* =========================================================
+   PHONE NUMBER PARSING
+   Handles values like:
+     "0814..., 0803..."   → ["0814...", "0803..."]
+     "0814... / 0803..."  → ["0814...", "0803..."]
+     "0814...\\n0803..."  → ["0814...", "0803..."]
+   Renders joined with ", " so WhatsApp doesn't concatenate.
+========================================================= */
+function splitPhones(raw) {
+    if (!hasValue(raw)) return [];
+
+    return String(raw)
+        .split(/[\s,;\/|]+|\n+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+}
+
+
+/* =========================================================
    BOOT
 ========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
@@ -237,14 +255,13 @@ function renderHero() {
     const eyebrow = location ? `Est. — ${location}` : "Fashion Boutique";
     $("#hero-eyebrow").textContent = eyebrow;
 
-    // WhatsApp chat link
     if (hasValue(BUSINESS.whatsapp)) {
         const wa = $("#hero-whatsapp");
         wa.href = `https://wa.me/${BUSINESS.whatsapp}`;
         wa.hidden = false;
     }
 
-    // Hero panel: logo, or monogram
+    // Hero panel — use shop's own logo
     if (isValidUrl(logo)) {
         const img = $("#hero-logo");
         img.src = logo;
@@ -268,7 +285,7 @@ function renderFilters() {
     const chips = [{ value: "all", label: "All" }]
         .concat(CATEGORIES.map(c => ({ value: c, label: c })));
 
-    chips.forEach((chip, i) => {
+    chips.forEach(chip => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "chip" + (VIEW.category === chip.value ? " active" : "");
@@ -293,7 +310,6 @@ function renderProducts() {
     const grid = $("#grid");
     if (!grid) return;
 
-    // Show skeleton on first paint
     if (!grid.dataset.rendered) {
         grid.innerHTML = Array.from({ length: 4 }).map(() => `
             <article class="skeleton">
@@ -320,7 +336,6 @@ function renderProducts() {
     grid.innerHTML = list.map(productCardHTML).join("");
     grid.dataset.rendered = "1";
 
-    // Image error fallback
     $$("img", grid).forEach(img => {
         img.addEventListener("error", () => {
             img.src = placeholderImage();
@@ -339,7 +354,6 @@ function filterProducts() {
         return hay.includes(q);
     });
 
-    // Clone before sorting
     list = list.slice();
 
     if (VIEW.sort === "price-low") {
@@ -362,14 +376,12 @@ function productCardHTML(p) {
     const cat = p.category || "";
     const available = p.available !== false;
 
-    // Badges
     const badges = [];
     if (!available)         badges.push(`<span class="badge out">Sold out</span>`);
     if (p.onSale)           badges.push(`<span class="badge sale">−${p.discountPercent}%</span>`);
     if (p.featured && available) badges.push(`<span class="badge feat">Featured</span>`);
     if (p.isNew && available)    badges.push(`<span class="badge new">New in</span>`);
 
-    // Price
     const priceHTML = `
         <span class="price">${esc(money(p.price))}</span>
         ${p.onSale && p.oldPrice ? `<del class="price-old">${esc(money(p.oldPrice))}</del>` : ""}
@@ -398,6 +410,7 @@ function productCardHTML(p) {
 
 /* =========================================================
    INFO SECTIONS
+   Uses white-space: pre-line in CSS so multi-line values render.
 ========================================================= */
 function renderInfoSections() {
     const container = $("#info-grid");
@@ -466,6 +479,7 @@ function renderInfoSections() {
 
 /* =========================================================
    CONTACT
+   Phone numbers split and joined with ", " so they don't merge.
 ========================================================= */
 function renderContact() {
     const container = $("#contact-actions");
@@ -482,13 +496,15 @@ function renderContact() {
         });
     }
 
-    if (hasValue(BUSINESS.phone)) {
+    // Phone — may contain more than one number. Split and display each.
+    const phones = splitPhones(BUSINESS.phone);
+    phones.forEach(num => {
         actions.push({
-            label: BUSINESS.phone,
+            label: num,
             icon: ICONS.phone,
-            href: `tel:${BUSINESS.phone}`
+            href: `tel:${num.replace(/\s+/g, "")}`
         });
-    }
+    });
 
     // Socials
     const socials = BUSINESS.socials || {};
@@ -579,7 +595,6 @@ function openModal(product) {
         HISTORY.modal = true;
     }
 
-    // Focus close for accessibility
     setTimeout(() => $("#modal-close").focus(), 120);
 }
 
@@ -675,7 +690,6 @@ function renderModalFields(product) {
         if (Array.isArray(val) && !val.length) return;
 
         if (Array.isArray(val)) {
-            // Choices required before add to cart
             const el = document.createElement("div");
             el.className = "field-choices";
             el.dataset.fieldKey = field.key;
@@ -691,7 +705,6 @@ function renderModalFields(product) {
             `;
             container.appendChild(el);
         } else {
-            // Static detail row
             const el = document.createElement("div");
             el.className = "field-row";
             el.innerHTML = `
@@ -702,7 +715,6 @@ function renderModalFields(product) {
         }
     });
 
-    // Listen for choice clicks
     container.addEventListener("click", handleChoiceClick);
 }
 
@@ -716,7 +728,6 @@ function handleChoiceClick(e) {
 
     MODAL.selections[key] = value;
 
-    // Update selected state in this group
     const group = btn.closest(".field-choices");
     $$(".choice", group).forEach(c => {
         c.classList.toggle("selected", c === btn);
@@ -937,7 +948,6 @@ function renderCart() {
 
     totalEl.textContent = money(cartTotal());
 
-    // Hint about whatsapp availability
     const hint = $("#cart-hint");
     if (!BUSINESS.whatsapp) {
         $("#cart-send").disabled = true;
@@ -1022,7 +1032,6 @@ function sendOrder() {
    EVENTS
 ========================================================= */
 function bindEvents() {
-    // Search
     const search = $("#search-input");
     let searchTimer = null;
     search.addEventListener("input", () => {
@@ -1033,22 +1042,18 @@ function bindEvents() {
         }, 140);
     });
 
-    // Sort
     $("#sort-select").addEventListener("change", e => {
         VIEW.sort = e.target.value;
         renderProducts();
     });
 
-    // Header cart button
     $("#cart-btn").addEventListener("click", openCart);
     $("#cart-close").addEventListener("click", closeCart);
 
-    // Modal close
     $("#modal-close").addEventListener("click", closeModal);
     $("[data-close-modal]").addEventListener("click", closeModal);
     $("[data-close-cart]").addEventListener("click", closeCart);
 
-    // Modal add to cart
     $("#modal-add").addEventListener("click", () => {
         const p = MODAL.product;
         if (!p || p.available === false) return;
@@ -1062,13 +1067,10 @@ function bindEvents() {
         setTimeout(openCart, 200);
     });
 
-    // Send order
     $("#cart-send").addEventListener("click", sendOrder);
 
-    // Global click delegation
     document.addEventListener("click", handleDocumentClick);
 
-    // Keyboard
     document.addEventListener("keydown", e => {
         if (e.key === "Escape") {
             if (HISTORY.modal) closeModal();
@@ -1076,7 +1078,6 @@ function bindEvents() {
         }
     });
 
-    // History / phone back button
     window.addEventListener("popstate", () => {
         if (HISTORY.modal) { closeModalInternal(); return; }
         if (HISTORY.cart)  { closeCartInternal();  return; }
@@ -1085,7 +1086,6 @@ function bindEvents() {
 
 
 function handleDocumentClick(e) {
-    // Quick-add button on card
     const quick = e.target.closest("[data-quick-add]");
     if (quick) {
         e.stopPropagation();
@@ -1104,7 +1104,6 @@ function handleDocumentClick(e) {
         return;
     }
 
-    // Card body click opens modal
     const card = e.target.closest(".card");
     if (card) {
         const id = card.dataset.productId;
@@ -1113,7 +1112,6 @@ function handleDocumentClick(e) {
         return;
     }
 
-    // Cart quantity controls
     const inc = e.target.closest("[data-qty-inc]");
     if (inc) {
         changeQty(inc.dataset.qtyInc, 1);
