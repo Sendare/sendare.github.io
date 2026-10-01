@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13201D">
+<meta name="robots" content="noindex">
+<title>Super admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF1EF;--ink:#13201D;--muted:#5D6B67;--line:#D3DCD9;--brand:#0E5A4A;--brand-dark:#0A4538;--accent:#F0B429;--danger:#B3261E}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Figtree',system-ui,sans-serif}
+body.locked{overflow:hidden}
+h1,h2,h3{font-family:'Bricolage Grotesque','Figtree',sans-serif;letter-spacing:-.01em;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted)}
+.btn{min-height:46px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:600}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-dark)}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:#fff}
+.btn.small{min-height:38px;padding:0 12px;font-size:14px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.link{background:none;border:0;color:inherit;font-weight:600;padding:8px;min-height:44px}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px}
+.login-card{background:#fff;border-radius:18px;padding:28px 22px;width:100%;max-width:400px;border:1px solid var(--line)}
+.login-card h1{font-size:30px;margin-bottom:4px}
+.login-card .sub{margin:0 0 20px;color:var(--muted)}
+.err{color:var(--danger);min-height:1.4em;margin:8px 0;font-size:14px}
+.top{background:var(--ink);color:#fff;position:sticky;top:0;z-index:10}
+.top-in{display:flex;align-items:center;gap:12px;min-height:60px}
+.top-in strong{font-family:'Bricolage Grotesque',sans-serif;font-size:19px;flex:1}
+.top-in span{font-size:13px;opacity:.7;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{padding:18px 0 90px}
+.bar{display:flex;gap:10px;margin-bottom:10px}
+.bar input{flex:1;min-width:0}
+.count{margin:0 0 12px;color:var(--muted);font-size:14px}
+.clist{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.crow{background:#fff;border:1px solid var(--line);border-radius:14px}
+.cbtn{width:100%;display:flex;align-items:center;gap:12px;background:none;border:0;padding:14px;text-align:left}
+.cbtn .mark{width:44px;height:44px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:700;flex:none;overflow:hidden}
+.cbtn .mark img{width:100%;height:100%;object-fit:cover}
+.cinfo{display:flex;flex-direction:column;min-width:0;flex:1}
+.cinfo strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cinfo small{color:var(--muted)}
+.pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;background:#DDEFE9;color:var(--brand)}
+.pill.off{background:#F3DDDB;color:var(--danger)}
+.empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:32px 20px;text-align:center;color:var(--muted)}
+.field{display:block;margin:0 0 14px;border:0;padding:0;min-width:0}
+.field > span,.field > legend{display:block;font-size:14px;font-weight:600;margin-bottom:4px;padding:0}
+.field small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+input[type=text],input[type=email],input[type=tel],input[type=search],input[type=password],select,textarea{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+textarea{min-height:92px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.inline{display:flex;gap:8px;align-items:flex-start}
+.inline input{flex:1}
+.section-title{font-size:18px;margin:22px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip input{position:absolute;opacity:0;width:1px;height:1px}
+.chip span{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:#fff;cursor:pointer;font-size:15px;font-weight:500}
+.chip input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip input:focus-visible + span{outline:3px solid var(--accent)}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;min-height:44px;position:relative}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.track{width:42px;height:24px;border-radius:99px;background:#B9C4C0;position:relative;transition:background .15s;flex:none}
+.track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked + .track{background:var(--brand)}
+.switch input:checked + .track::after{transform:translateX(18px)}
+.switch input:focus-visible + .track{outline:3px solid var(--accent)}
+.item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item div{min-width:0}
+.item strong,.item span{display:block;overflow:hidden;text-overflow:ellipsis}
+.item span{font-size:13px;color:var(--muted)}
+.box{background:var(--bg);border-radius:12px;padding:14px;margin-top:10px}
+pre.msg{white-space:pre-wrap;word-break:break-word;background:var(--bg);border-radius:12px;padding:14px;font:15px/1.5 'Figtree',sans-serif;margin:10px 0}
+.warn{background:#FFF4D6;border-radius:10px;padding:10px 12px;font-size:14px;margin:10px 0}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(19,32,29,.55);display:flex;align-items:flex-end;justify-content:center}
+.panel{background:#fff;width:100%;height:100%;display:flex;flex-direction:column}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 16px;border-bottom:1px solid var(--line)}
+.panel-head h2{font-size:20px}
+.panel-head .link{color:var(--brand)}
+.panel-body{overflow:auto;padding:16px;flex:1;-webkit-overflow-scrolling:touch}
+.panel-foot{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#fff}
+.panel-foot .primary{flex:1}
+@media(min-width:720px){.sheet{align-items:center}.panel{width:680px;height:auto;max-height:92vh;border-radius:18px;overflow:hidden}}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;z-index:100;max-width:90vw;font-size:15px;display:none}
+#toast.show{display:block}
+#toast.bad{background:var(--danger)}
+.center{min-height:60vh;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/data.js"></script>
+<script>
+/* ONE-TIME SQL (run in Supabase SQL editor before first use):
+   alter table public.business_users add column if not exists email text;
+   Also in Supabase: Authentication > Sign In / Providers > Email:
+   turn OFF "Confirm email" so new customer logins work immediately. */
+(() => {
+'use strict';
+
+const BUCKET = 'product-images';
+const app = document.getElementById('app');
+if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
+  app.innerHTML = '<div class="center"><p>Set your Supabase URL and key in data.js first.</p></div>';
+  return;
+}
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const state = { user: null, businesses: [], links: [], fields: [], query: '' };
+let sheetEl = null, detailId = null, newFields = [], slugTouched = false, lastResult = '';
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slugify = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const keyify = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+const genPassword = () => { const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const r = crypto.getRandomValues(new Uint32Array(10)); return [...r].map(n => a[n % a.length]).join(''); };
+const PRESET = ['Colour', 'Sizes', 'Material', 'Weight', 'Flavour', 'Brand'];
+
+let toastTimer;
+function toast(msg, bad) { const t = $('#toast'); t.textContent = msg; t.className = 'show' + (bad ? ' bad' : ''); clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = ''; }, 3800); }
+function fail(e) {
+  console.error(e);
+  let m = (e && e.message) || 'Something went wrong.';
+  if (/column.*email|email.*column/i.test(m)) m = 'Run the one-time SQL first: alter table public.business_users add column if not exists email text;';
+  if (/jwt|token|expired/i.test(m)) { toast('Session expired. Sign in again.', true); renderLogin(); return; }
+  toast(m, true);
+}
+async function copyText(text) { try { await navigator.clipboard.writeText(text); toast('Copied'); } catch (_) { prompt('Copy this text:', text); } }
+
+/* ---------- login ---------- */
+function renderLogin(msg = '') {
+  closeSheet();
+  app.innerHTML = `
+  <div class="login"><div class="login-card">
+    <h1>Super admin</h1>
+    <p class="sub">Create and manage customer shops.</p>
+    <form id="login-form">
+      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="err" id="login-err">${esc(msg)}</p>
+      <button class="btn primary block" type="submit">Sign in</button>
+    </form>
+  </div></div>`;
+  $('#login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const { data, error } = await db.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
+    if (error) { $('#login-err').textContent = 'Wrong email or password.'; btn.disabled = false; btn.textContent = 'Sign in'; return; }
+    boot(data.user);
+  });
+}
+
+async function boot(user) {
+  state.user = user;
+  app.innerHTML = '<div class="center">Loading…</div>';
+  const { data, error } = await db.rpc('is_super_admin');
+  if (error || !data) {
+    app.innerHTML = '<div class="center"><div><p>This account is not a super admin.</p><button class="btn" data-act="signout">Sign out</button></div></div>';
+    return;
+  }
+  await loadAll();
+  renderMain();
+}
+
+async function loadAll() {
+  const [b, l, f] = await Promise.all([
+    db.from('businesses').select('*').order('created_at', { ascending: false }),
+    db.from('business_users').select('*'),
+    db.from('business_fields').select('*').order('sort_order')
+  ]);
+  if (b.error) return fail(b.error);
+  state.businesses = b.data || []; state.links = l.data || []; state.fields = f.data || [];
+}
+
+/* ---------- main list ---------- */
+function renderMain() {
+  app.innerHTML = `
+  <header class="top"><div class="wrap top-in">
+    <strong>Super admin</strong><span>${esc(state.user.email)}</span>
+    <button class="link" data-act="signout">Sign out</button>
+  </div></header>
+  <main><div class="wrap">
+    <div class="bar">
+      <input id="search" type="search" placeholder="Search customers" value="${esc(state.query)}" aria-label="Search customers">
+      <button class="btn primary" data-act="new">New customer</button>
+    </div>
+    <p class="count" id="count"></p>
+    <div id="list"></div>
+  </div></main>`;
+  paintList();
+}
+
+function paintList() {
+  const q = state.query.toLowerCase();
+  const list = state.businesses.filter(b => !q || b.name.toLowerCase().includes(q) || b.slug.includes(q));
+  const c = $('#count'); if (c) c.textContent = `${list.length} of ${state.businesses.length} customers`;
+  const box = $('#list'); if (!box) return;
+  box.innerHTML = list.length ? `<ul class="clist">${list.map(b => {
+    const n = state.links.filter(l => l.business_id === b.id).length;
+    return `<li class="crow"><button class="cbtn" data-act="detail" data-id="${b.id}">
+      <span class="mark">${b.logo_url ? `<img src="${esc(b.logo_url)}" alt="">` : esc((b.name || '?')[0])}</span>
+      <span class="cinfo"><strong>${esc(b.name)}</strong><small>${esc(b.slug)} · ${n} login${n === 1 ? '' : 's'}</small></span>
+      <span class="pill ${b.is_active ? '' : 'off'}">${b.is_active ? 'Live' : 'Hidden'}</span>
+    </button></li>`;
+  }).join('')}</ul>` : `<div class="empty">${state.businesses.length ? 'No customers match your search.' : 'No customers yet. Tap “New customer” to add the first one.'}</div>`;
+}
+
+/* ---------- sheet ---------- */
+function openSheet(html) {
+  closeSheet();
+  sheetEl = document.createElement('div');
+  sheetEl.className = 'sheet';
+  sheetEl.innerHTML = `<div class="panel" role="dialog" aria-modal="true">${html}</div>`;
+  document.body.appendChild(sheetEl);
+  document.body.classList.add('locked');
+  history.pushState({ sheet: 1 }, '');
+  sheetEl.addEventListener('click', e => { if (e.target === sheetEl) requestClose(); });
+}
+function setSheet(html) { if (!sheetEl) openSheet(html); else sheetEl.firstElementChild.innerHTML = html; }
+function requestClose() { if (history.state && history.state.sheet) history.back(); else closeSheet(); }
+function closeSheet() {
+  if (!sheetEl) return;
+  sheetEl.remove(); sheetEl = null; detailId = null; newFields = [];
+  document.body.classList.remove('locked');
+}
+window.addEventListener('popstate', () => { if (sheetEl) closeSheet(); });
+
+/* ---------- new customer ---------- */
+function chipHTML(label, checked) {
+  return `<label class="chip"><input type="checkbox" data-chip="${esc(label)}" ${checked ? 'checked' : ''}><span>${esc(label)}</span></label>`;
+}
+
+function openNew() {
+  slugTouched = false;
+  newFields = [];
+  openSheet(`
+    <div class="panel-head"><h2>New customer</h2><button class="link" data-act="close">Close</button></div>
+    <div class="panel-body">
+      <label class="field"><span>Shop name</span><input type="text" id="nc-name" maxlength="80"></label>
+      <label class="field"><span>Web name (slug)</span><input type="text" id="nc-slug" autocapitalize="none"><small>Lowercase letters, numbers, dashes. Used in the site code, for example <b>oum-hidaya</b>.</small></label>
+      <div class="row2">
+        <label class="field"><span>WhatsApp number</span><input type="tel" id="nc-wa" inputmode="tel" placeholder="08012345678"><small>A leading 0 becomes 234.</small></label>
+        <label class="field"><span>Phone (optional)</span><input type="tel" id="nc-phone" inputmode="tel"></label>
+      </div>
+      <label class="field"><span>Location</span><input type="text" id="nc-loc"></label>
+      <label class="field"><span>Tagline</span><input type="text" id="nc-tag"></label>
+      <label class="field"><span>Description</span><textarea id="nc-desc"></textarea></label>
+      <label class="field"><span>Currency</span><input type="text" id="nc-cur" value="Naira"></label>
+
+      <h3 class="section-title">Product details</h3>
+      <p class="muted" style="margin:0 0 10px;font-size:14px">Pick the extra details this business's products have.</p>
+      <div class="chips" id="nc-chips">${PRESET.map(p => chipHTML(p, false)).join('')}</div>
+      <div class="inline">
+        <input type="text" id="nc-custom" placeholder="Add your own, e.g. Scent" aria-label="Custom detail">
+        <button class="btn" type="button" data-act="add-chip">Add</button>
+      </div>
+
+      <h3 class="section-title">Owner login</h3>
+      <label class="field"><span>Email</span><input type="email" id="nc-email" autocapitalize="none" autocomplete="off"></label>
+      <label class="field"><span>Password</span>
+        <div class="inline"><input type="text" id="nc-pass" autocomplete="off" autocapitalize="none"><button class="btn" type="button" data-act="gen">Generate</button></div>
+        <small>At least 6 characters.</small></label>
+    </div>
+    <div class="panel-foot"><button class="btn primary" data-act="create">Create customer</button></div>`);
+}
+
+function collectFields() {
+  const out = [], seen = new Set();
+  document.querySelectorAll('#nc-chips [data-chip]:checked').forEach(c => {
+    const label = c.dataset.chip, key = keyify(label);
+    if (key && !seen.has(key)) { seen.add(key); out.push({ label, key, type: 'text' }); }
+  });
+  return out;
+}
+
+function normalizeWA(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.startsWith('0') && d.length >= 10) d = '234' + d.slice(1);
+  return d;
+}
+
+async function createLogin(bizId, email, password) {
+  const tmp = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'tmp-signup' } });
+  const { data, error } = await tmp.auth.signUp({ email, password });
+  if (error) throw error;
+  const u = data.user;
+  if (!u || (u.identities && u.identities.length === 0)) throw new Error('That email already has an account. Use a different email.');
+  const { error: le } = await db.from('business_users').insert({ user_id: u.id, business_id: bizId, email });
+  if (le) throw le;
+  return { needsConfirm: !data.session };
+}
+
+async function createCustomer(btn) {
+  const v = id => $('#' + id).value.trim();
+  const name = v('nc-name'), slug = v('nc-slug'), email = v('nc-email').toLowerCase(), pass = $('#nc-pass').value;
+  const wa = normalizeWA(v('nc-wa'));
+  if (!name) return toast('Enter the shop name.', true);
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return toast('Web name: lowercase letters, numbers and dashes only.', true);
+  if (!wa) return toast('Enter the WhatsApp number.', true);
+  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a valid owner email.', true);
+  if (pass.length < 6) return toast('Password must be at least 6 characters.', true);
+
+  btn.disabled = true; btn.textContent = 'Creating…';
+  let bizId = null;
+  try {
+    const row = {
+      slug, name, tagline: v('nc-tag') || null, description: v('nc-desc') || null,
+      phone: normalizeWA(v('nc-phone')) || wa, whatsapp: wa, location: v('nc-loc') || null,
+      currency: v('nc-cur') || 'Naira', order_instruction: 'send order on whatsapp', contact_message: 'i want this item'
+    };
+    const { data: b, error: e1 } = await db.from('businesses').insert(row).select('*').single();
+    if (e1) throw e1.code === '23505' ? new Error('That web name is already used. Pick another.') : e1;
+    bizId = b.id;
+
+    const fr = collectFields().map((f, i) => ({ business_id: bizId, key: f.key, label: f.label, type: f.type, sort_order: i + 1 }));
+    if (fr.length) { const { error } = await db.from('business_fields').insert(fr); if (error) throw error; }
+
+    const res = await createLogin(bizId, email, pass);
+    await loadAll();
+    paintList();
+    showResult(b, email, pass, res.needsConfirm);
+  } catch (err) {
+    if (bizId) await db.from('businesses').delete().eq('id', bizId);
+    fail(err);
+    btn.disabled = false; btn.textContent = 'Create customer';
+  }
+}
+
+function showResult(b, email, pass, needsConfirm) {
+  const link = location.origin + '/admin/';
+  lastResult = `Hello! Your shop manager is ready.\n\nOpen: ${link}\nEmail: ${email}\nPassword: ${pass}\n\nUse it to add products, change prices, and mark items sold out.`;
+  setSheet(`
+    <div class="panel-head"><h2>${esc(b.name)} is created</h2><button class="link" data-act="close">Close</button></div>
+    <div class="panel-body">
+      ${needsConfirm ? '<div class="warn"><b>Email confirmation is on.</b> The owner cannot sign in until the email is confirmed. Turn off “Confirm email” in Supabase (Authentication, Sign In / Providers, Email), or confirm the user in Authentication, Users.</div>' : ''}
+      <p style="margin:0">Send this to the owner on WhatsApp:</p>
+      <pre class="msg">${esc(lastResult)}</pre>
+      <button class="btn primary block" data-act="copy-msg">Copy message</button>
+      <h3 class="section-title">Next: build the site</h3>
+      <p class="muted" style="margin:0">In the site's script set <b>const SHOP_SLUG = "${esc(b.slug)}";</b> and give your AI the data contract. Then add products from the shop manager.</p>
+    </div>
+    <div class="panel-foot"><button class="btn block" data-act="close">Done</button></div>`);
+}
+
+/* ---------- customer detail ---------- */
+async function openDetail(id) {
+  detailId = id;
+  await paintDetail(true);
+}
+
+async function paintDetail(first) {
+  const b = state.businesses.find(x => x.id === detailId);
+  if (!b) return;
+  const { count } = await db.from('products').select('id', { count: 'exact', head: true }).eq('business_id', b.id);
+  if (detailId !== b.id) return;
+  const links = state.links.filter(l => l.business_id === b.id);
+  const fields = state.fields.filter(f => f.business_id === b.id).sort((a, c) => a.sort_order - c.sort_order);
+  const mine = links.some(l => l.user_id === state.user.id);
+  const html = `
+    <div class="panel-head"><h2>${esc(b.name)}</h2><button class="link" data-act="close">Close</button></div>
+    <div class="panel-body">
+      <p class="muted" style="margin:0 0 6px">${esc(b.slug)} · ${count ?? 0} product${count === 1 ? '' : 's'} · ${esc(b.location || 'No location')}</p>
+      <label class="switch"><input type="checkbox" data-act="active" ${b.is_active ? 'checked' : ''}><span class="track"></span><span>Site is live</span></label>
+      <p class="muted" style="margin:0;font-size:13px">Turn off to hide this shop's data from its site (for example, unpaid).</p>
+
+      <h3 class="section-title">Site code</h3>
+      <div class="inline"><input type="text" readonly value='const SHOP_SLUG = "${esc(b.slug)}";' aria-label="Site code"><button class="btn" data-act="copy-slug">Copy</button></div>
+
+      <h3 class="section-title">Logins</h3>
+      ${links.length ? links.map(l => `<div class="item"><div><strong>${esc(l.email || 'Unknown email')}</strong><span>${l.user_id === state.user.id ? 'You' : 'Owner'}</span></div><button class="btn small danger" data-act="unlink" data-uid="${l.user_id}">Remove</button></div>`).join('') : '<p class="muted">No logins yet.</p>'}
+      <div class="box">
+        <strong>Add a login</strong>
+        <label class="field" style="margin-top:8px"><span>Email</span><input type="email" id="al-email" autocapitalize="none" autocomplete="off"></label>
+        <div class="inline"><input type="text" id="al-pass" placeholder="Password" autocomplete="off" autocapitalize="none"><button class="btn" data-act="gen-al">Generate</button></div>
+        <button class="btn primary block" style="margin-top:10px" data-act="add-login">Create login</button>
+      </div>
+      ${mine ? '' : '<button class="btn block" style="margin-top:10px" data-act="link-me">Link my account so I can manage this shop in the shop manager</button>'}
+
+      <h3 class="section-title">Product details</h3>
+      ${fields.length ? fields.map(f => `<div class="item"><div><strong>${esc(f.label)}</strong><span>${esc(f.key)} · ${esc(f.type)}${Array.isArray(f.options) && f.options.length ? ' · ' + esc(f.options.join(', ')) : ''}</span></div><button class="btn small danger" data-act="field-del" data-id="${f.id}">Remove</button></div>`).join('') : '<p class="muted">No extra details yet.</p>'}
+      <div class="box">
+        <strong>Add a detail</strong>
+        <div class="row2" style="margin-top:8px">
+          <label class="field"><span>Name</span><input type="text" id="nf-label" placeholder="e.g. Scent"></label>
+          <label class="field"><span>Type</span><select id="nf-type"><option value="text">Text</option><option value="number">Number</option><option value="select">Pick one</option><option value="multiselect">Pick many</option><option value="boolean">Yes / No</option><option value="color">Colour</option></select></label>
+        </div>
+        <label class="field"><span>Choices</span><input type="text" id="nf-options" placeholder="Small, Medium, Large"><small>Only for “Pick one” and “Pick many”, separated by commas.</small></label>
+        <button class="btn block" data-act="field-add">Add detail</button>
+      </div>
+
+      <h3 class="section-title">Danger zone</h3>
+      <button class="btn danger block" data-act="delete-shop">Delete this shop</button>
+      <p class="muted" style="font-size:13px">Deletes the shop, its products, and its photos. Login accounts stay in Supabase.</p>
+    </div>`;
+  if (first) openSheet(html); else {
+    const body = sheetEl && sheetEl.querySelector('.panel-body');
+    const scroll = body ? body.scrollTop : 0;
+    setSheet(html);
+    const nb = sheetEl.querySelector('.panel-body'); if (nb) nb.scrollTop = scroll;
+  }
+}
+
+async function setActive(checked, input) {
+  const { data, error } = await db.from('businesses').update({ is_active: checked }).eq('id', detailId).select('id');
+  if (error || !data || !data.length) { input.checked = !checked; return fail(error || new Error('Could not change status.')); }
+  state.businesses.find(b => b.id === detailId).is_active = checked;
+  paintList(); toast(checked ? 'Site is live' : 'Site hidden');
+}
+
+async function addLogin(btn) {
+  const email = $('#al-email').value.trim().toLowerCase(), pass = $('#al-pass').value;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a valid email.', true);
+  if (pass.length < 6) return toast('Password must be at least 6 characters.', true);
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const res = await createLogin(detailId, email, pass);
+    await loadAll(); paintList();
+    const b = state.businesses.find(x => x.id === detailId);
+    showResult(b, email, pass, res.needsConfirm);
+  } catch (e) { fail(e); btn.disabled = false; btn.textContent = 'Create login'; }
+}
+
+async function unlink(uid) {
+  if (!confirm('Remove this login from the shop? The account stays in Supabase but can no longer manage this shop.')) return;
+  const { error } = await db.from('business_users').delete().eq('business_id', detailId).eq('user_id', uid);
+  if (error) return fail(error);
+  await loadAll(); paintList(); paintDetail(false); toast('Login removed');
+}
+
+async function linkMe() {
+  const { error } = await db.from('business_users').insert({ user_id: state.user.id, business_id: detailId, email: state.user.email });
+  if (error) return fail(error.code === '23505' ? new Error('Already linked.') : error);
+  await loadAll(); paintList(); paintDetail(false); toast('Linked. Sign in to /admin/ to manage it.');
+}
+
+async function addField() {
+  const label = $('#nf-label').value.trim(), type = $('#nf-type').value;
+  const options = $('#nf-options').value.split(',').map(s => s.trim()).filter(Boolean);
+  const key = keyify(label);
+  if (!label || !key) return toast('Enter a name for the detail.', true);
+  if ((type === 'select' || type === 'multiselect') && !options.length) return toast('Add the choices, separated by commas.', true);
+  const mine = state.fields.filter(f => f.business_id === detailId);
+  if (mine.some(f => f.key === key)) return toast('That detail already exists.', true);
+  const order = mine.reduce((m, f) => Math.max(m, f.sort_order), 0) + 1;
+  const { error } = await db.from('business_fields').insert({ business_id: detailId, key, label, type, options, sort_order: order });
+  if (error) return fail(error);
+  await loadAll(); paintDetail(false); toast('Detail added');
+}
+
+async function delField(id) {
+  if (!confirm('Remove this detail? Values already saved on products stay hidden in the data.')) return;
+  const { error } = await db.from('business_fields').delete().eq('id', id);
+  if (error) return fail(error);
+  await loadAll(); paintDetail(false); toast('Detail removed');
+}
+
+async function deleteShop(btn) {
+  const b = state.businesses.find(x => x.id === detailId); if (!b) return;
+  const t = prompt(`Type "${b.slug}" to delete this shop and all its products.`);
+  if (t !== b.slug) { if (t !== null) toast('Name did not match. Nothing deleted.', true); return; }
+  btn.disabled = true;
+  try {
+    const { data: files } = await db.storage.from(BUCKET).list(b.id, { limit: 1000 });
+    if (files && files.length) await db.storage.from(BUCKET).remove(files.map(f => `${b.id}/${f.name}`));
+    const { data, error } = await db.from('businesses').delete().eq('id', b.id).select('id');
+    if (error) throw error;
+    if (!data || !data.length) throw new Error('Could not delete this shop.');
+    await loadAll(); paintList(); requestClose(); toast('Shop deleted');
+  } catch (e) { fail(e); btn.disabled = false; }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  switch (t.dataset.act) {
+    case 'signout': await db.auth.signOut(); renderLogin(); break;
+    case 'new': openNew(); break;
+    case 'detail': openDetail(t.dataset.id); break;
+    case 'close': requestClose(); break;
+    case 'gen': $('#nc-pass').value = genPassword(); break;
+    case 'gen-al': $('#al-pass').value = genPassword(); break;
+    case 'add-chip': {
+      const inp = $('#nc-custom'), label = inp.value.trim();
+      if (!label) break;
+      if (!document.querySelector(`#nc-chips [data-chip="${CSS.escape(label)}"]`)) $('#nc-chips').insertAdjacentHTML('beforeend', chipHTML(label, true));
+      inp.value = ''; break;
+    }
+    case 'create': createCustomer(t); break;
+    case 'copy-msg': copyText(lastResult); break;
+    case 'copy-slug': { const b = state.businesses.find(x => x.id === detailId); copyText(`const SHOP_SLUG = "${b.slug}";`); break; }
+    case 'add-login': addLogin(t); break;
+    case 'unlink': unlink(t.dataset.uid); break;
+    case 'link-me': linkMe(); break;
+    case 'field-add': addField(); break;
+    case 'field-del': delField(t.dataset.id); break;
+    case 'delete-shop': deleteShop(t); break;
+  }
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.act === 'active') setActive(t.checked, t);
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.id === 'search') { state.query = t.value; paintList(); }
+  if (t.id === 'nc-name' && !slugTouched) $('#nc-slug').value = slugify(t.value);
+  if (t.id === 'nc-slug') slugTouched = true;
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetEl) requestClose(); });
+
+/* ---------- start ---------- */
+db.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') renderLogin(); });
+(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  session ? boot(session.user) : renderLogin();
+})();
+})();
+</script>
+</body>
+</html>
