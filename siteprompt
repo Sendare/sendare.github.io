@@ -1,0 +1,35 @@
+Build a complete, unique storefront website for a Nigerian fashion shop. Output three files: index.html, style.css, script.js. Plain HTML, CSS and JavaScript only, no frameworks or build tools.
+
+SHOP
+- Slug: [his-slug]
+- Sells: atampa (ankara fabric), lace, bags, shoes and other fashion items
+- Style he wants: [colours and any website he admired, from his form]
+
+DATA
+- Read the attached AI-CONTRACT.md and follow it exactly.
+- Include <script src="/data.js"></script> before script.js. Never edit data.js.
+- Set const SHOP_SLUG = "[his-slug]"; and load everything with loadShop(SHOP_SLUG).
+- Do not call Supabase or Google Sheets directly.
+
+DESIGN
+- Mobile-first, since most customers browse on phones, but great on desktop too.
+- Make it feel like a fashion boutique: confident typography, rich colour, large product photos, and a hint of African textile pattern in the design. Do not use a generic template look.
+- Pick a distinctive font pairing and a colour palette from the style notes above. Do not copy the Oum Hidaya design (dark theme with gold). This site must look clearly different.
+
+FEATURES
+- Header with logo, shop name, cart button with item count.
+- Hero with shop name, tagline, description, and a button to the collection.
+- Product grid with category filter chips, search, and sorting (recommended, price low, price high, new in). Show Featured, New in, Sold out and discount badges. Show the old price crossed out when onSale is true.
+- Product detail popup with an image gallery (any number of photos, tap thumbnails to switch), price, description, and every extra detail: loop over shop.fields in order and show a value only if product.attributes[field.key] exists. When a detail is an array (such as sizes), show it as choices the customer must pick before adding to cart.
+- Cart drawer with quantity controls, name and note fields, a total, and a Send Order button that uses buildWhatsAppLink(shop.business, cart, customerName, note). Put the chosen options (size, colour) in the cart item's options text.
+- Save the cart in localStorage under a key unique to this shop.
+- Info sections that appear only when data exists: location (with maps link), delivery, opening hours, payment methods, social links, contact.
+- Sold-out products cannot be added to cart.
+- Loading state, empty state, and an offline "try again" state if loadShop fails.
+- Phone back button should close an open popup or cart.
+- Accessible: visible focus states, proper labels, readable contrast.
+
+RULES
+- Any field can be empty, so hide the related section.
+- Escape all text before inserting it into HTML.
+- Keep the code clean and commented by section.
