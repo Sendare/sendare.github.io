@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E5A4A">
+<meta name="robots" content="noindex">
+<title>Start your online shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF1EF;--ink:#13201D;--muted:#5D6B67;--line:#D3DCD9;--brand:#0E5A4A;--brand-dark:#0A4538;--accent:#F0B429;--danger:#B3261E}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 'Figtree',system-ui,sans-serif}
+h1,h2{font-family:'Bricolage Grotesque','Figtree',sans-serif;letter-spacing:-.01em;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+header{background:var(--brand);color:#fff;padding:28px 0 26px}
+header h1{font-size:30px;line-height:1.15;margin-bottom:8px}
+header p{margin:0;opacity:.88}
+form{padding:18px 0 40px}
+section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+section h2{font-size:20px;margin-bottom:14px}
+.field{display:block;margin:0 0 14px;border:0;padding:0;min-width:0}
+.field:last-child{margin-bottom:0}
+.field > span,.field > legend{display:block;font-size:14px;font-weight:600;margin-bottom:4px;padding:0}
+.field small{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.req{color:var(--danger)}
+input[type=text],input[type=email],input[type=tel],textarea{width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+textarea{min-height:84px;resize:vertical}
+input.bad,textarea.bad{border-color:var(--danger);background:#FFF6F5}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chip input{position:absolute;opacity:0;width:1px;height:1px}
+.chip span{display:inline-block;padding:9px 15px;border:1px solid var(--line);border-radius:99px;background:#fff;cursor:pointer;font-weight:500}
+.chip input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff}
+.chip input:focus-visible + span{outline:3px solid var(--accent)}
+.inline{display:flex;gap:8px}
+.inline input{flex:1}
+.btn{min-height:48px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;width:100%;font-size:17px}
+.btn.primary:hover{background:var(--brand-dark)}
+.note{background:#FFF4D6;border-radius:12px;padding:12px 14px;font-size:15px}
+.err{color:var(--danger);min-height:1.4em;margin:6px 0 0;font-size:14px}
+.thanks{display:none;text-align:center;padding:40px 8px}
+.thanks h2{margin-bottom:8px}
+.thanks.show{display:block}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Start your online shop</h1>
+  <p>Fill this in on your phone. It takes about 5 minutes. When you tap send, your answers open in WhatsApp for you to send to me.</p>
+</div></header>
+
+<div class="wrap">
+<form id="f" novalidate>
+
+  <section>
+    <h2>About your shop</h2>
+    <label class="field"><span>Shop name <b class="req">*</b></span><input type="text" id="name" autocomplete="organization"></label>
+    <label class="field"><span>Tagline</span><input type="text" id="tagline" placeholder="A short slogan"><small>Example: Quality, Style, Affordable</small></label>
+    <label class="field"><span>What do you sell?</span><textarea id="about" placeholder="One or two sentences"></textarea></label>
+    <label class="field"><span>Location / address</span><input type="text" id="location"></label>
+    <label class="field"><span>Opening hours</span><input type="text" id="hours" placeholder="Example: Mon to Sat, 9am to 6pm"></label>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <label class="field"><span>WhatsApp number for orders <b class="req">*</b></span><input type="tel" id="wa" inputmode="tel" placeholder="08012345678"></label>
+    <label class="field"><span>Phone number (if different)</span><input type="tel" id="phone" inputmode="tel"></label>
+    <label class="field"><span>Instagram link</span><input type="text" id="ig" autocapitalize="none"></label>
+    <label class="field"><span>Facebook link</span><input type="text" id="fb" autocapitalize="none"></label>
+    <label class="field"><span>TikTok link</span><input type="text" id="tt" autocapitalize="none"></label>
+    <label class="field"><span>Google Maps link</span><input type="text" id="maps" autocapitalize="none"></label>
+  </section>
+
+  <section>
+    <h2>Orders</h2>
+    <label class="field"><span>Delivery</span><input type="text" id="delivery" placeholder="Example: Home delivery everywhere in Nigeria"></label>
+    <fieldset class="field"><legend>Payment methods</legend>
+      <div class="chips" id="pay-chips"></div>
+      <div class="inline"><input type="text" id="pay-custom" placeholder="Another method" aria-label="Another payment method"><button class="btn" type="button" data-add="pay">Add</button></div>
+    </fieldset>
+    <label class="field"><span>Currency</span><input type="text" id="currency" value="Naira"></label>
+  </section>
+
+  <section>
+    <h2>Your products</h2>
+    <fieldset class="field"><legend>What details do your items have?</legend>
+      <div class="chips" id="detail-chips"></div>
+      <div class="inline"><input type="text" id="detail-custom" placeholder="Add your own, e.g. Scent" aria-label="Another product detail"><button class="btn" type="button" data-add="detail">Add</button></div>
+      <small>These show up on each product, like size or colour.</small>
+    </fieldset>
+    <label class="field"><span>Product categories</span><input type="text" id="cats" placeholder="Example: Shoes, Bags, Cloth"><small>Separate with commas.</small></label>
+  </section>
+
+  <section>
+    <h2>Your website style</h2>
+    <label class="field"><span>Colours you like</span><input type="text" id="colors" placeholder="Example: green and gold"></label>
+    <label class="field"><span>A website you admire (optional)</span><input type="text" id="inspo" autocapitalize="none"></label>
+  </section>
+
+  <section>
+    <h2>Your login</h2>
+    <label class="field"><span>Email for your shop manager <b class="req">*</b></span><input type="email" id="email" autocapitalize="none" autocomplete="email"><small>You will use this to add products and change prices.</small></label>
+  </section>
+
+  <div class="note" style="margin-bottom:14px"><b>After you send:</b> in the same WhatsApp chat, please also send your <b>logo</b> and <b>5 to 10 products</b> with clear photos, the name, and the price of each. Photos cannot be attached from this form.</div>
+
+  <p class="err" id="err" role="alert"></p>
+  <button class="btn primary" type="submit">Send on WhatsApp</button>
+</form>
+
+<div class="thanks" id="thanks">
+  <h2>Almost done</h2>
+  <p>WhatsApp should have opened with your answers. Tap send there.<br>If it did not open, use the button below.</p>
+  <p><button class="btn" id="copy" type="button">Copy my answers</button></p>
+  <p><a id="again" href="#">Open WhatsApp again</a></p>
+</div>
+</div>
+
+<script>
+/* ===== SET THIS: your own WhatsApp number, digits only, with country code ===== */
+const MY_WHATSAPP = "234XXXXXXXXXX";
+
+const PAY = ['Bank transfer', 'Cash', 'POS', 'Pay on delivery'];
+const DETAILS = ['Size', 'Colour', 'Material', 'Weight', 'Flavour', 'Brand'];
+const $ = id => document.getElementById(id);
+const IDS = ['name','tagline','about','location','hours','wa','phone','ig','fb','tt','maps','delivery','currency','cats','colors','inspo','email'];
+const KEY = 'onboard_draft_v1';
+
+function chip(group, label, checked) {
+  const l = document.createElement('label');
+  l.className = 'chip';
+  const i = document.createElement('input');
+  i.type = 'checkbox'; i.value = label; i.checked = !!checked; i.dataset.group = group;
+  const s = document.createElement('span'); s.textContent = label;
+  l.append(i, s);
+  return l;
+}
+PAY.forEach(p => $('pay-chips').append(chip('pay', p)));
+DETAILS.forEach(d => $('detail-chips').append(chip('detail', d)));
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-add]'); if (!b) return;
+  const g = b.dataset.add, inp = $(g + '-custom'), v = inp.value.trim();
+  if (!v) return;
+  const box = $(g === 'pay' ? 'pay-chips' : 'detail-chips');
+  const exists = [...box.querySelectorAll('input')].find(x => x.value.toLowerCase() === v.toLowerCase());
+  if (exists) exists.checked = true; else box.append(chip(g, v, true));
+  inp.value = ''; save();
+});
+
+const picked = g => [...document.querySelectorAll(`input[data-group="${g}"]:checked`)].map(i => i.value);
+const val = id => $(id).value.trim();
+function normalizeWA(v) { let d = String(v || '').replace(/\D/g, ''); if (d.startsWith('0') && d.length >= 10) d = '234' + d.slice(1); return d; }
+
+/* draft autosave so nothing is lost if the page reloads */
+function save() {
+  const data = { f: {}, pay: picked('pay'), detail: picked('detail') };
+  IDS.forEach(i => data.f[i] = $(i).value);
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (_) {}
+}
+function restore() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!d) return;
+    IDS.forEach(i => { if (d.f && d.f[i] != null) $(i).value = d.f[i]; });
+    [['pay', 'pay-chips'], ['detail', 'detail-chips']].forEach(([g, boxId]) => {
+      const box = $(boxId);
+      (d[g] || []).forEach(v => {
+        const ex = [...box.querySelectorAll('input')].find(x => x.value === v);
+        if (ex) ex.checked = true; else box.append(chip(g, v, true));
+      });
+    });
+  } catch (_) {}
+}
+restore();
+document.addEventListener('input', save);
+document.addEventListener('change', save);
+
+function buildMessage() {
+  const line = (n, label, v) => `${n}. ${label}: ${v || '-'}`;
+  return [
+    '*New shop request*',
+    '',
+    '*ABOUT THE SHOP*',
+    line(1, 'Shop name', val('name')),
+    line(2, 'Tagline', val('tagline')),
+    line(3, 'What I sell', val('about')),
+    line(4, 'Location', val('location')),
+    line(5, 'Opening hours', val('hours')),
+    '',
+    '*CONTACT*',
+    line(6, 'WhatsApp', normalizeWA(val('wa'))),
+    line(7, 'Phone', normalizeWA(val('phone'))),
+    line(8, 'Instagram', val('ig')),
+    `    Facebook: ${val('fb') || '-'}`,
+    `    TikTok: ${val('tt') || '-'}`,
+    line(9, 'Google Maps', val('maps')),
+    '',
+    '*ORDERS*',
+    line(10, 'Delivery', val('delivery')),
+    line(11, 'Payment methods', picked('pay').join(', ')),
+    line(12, 'Currency', val('currency')),
+    '',
+    '*PRODUCTS*',
+    line(13, 'Product details', picked('detail').join(', ')),
+    line(14, 'Categories', val('cats')),
+    '',
+    '*STYLE*',
+    line(15, 'Colours', val('colors')),
+    line(16, 'Website I admire', val('inspo')),
+    '',
+    '*LOGIN*',
+    line(17, 'Email', val('email').toLowerCase()),
+    '',
+    'I will send my logo and product photos next.'
+  ].join('\n');
+}
+
+function waLink(msg) { return `https://wa.me/${MY_WHATSAPP}?text=${encodeURIComponent(msg)}`; }
+
+let lastMsg = '';
+$('f').addEventListener('submit', e => {
+  e.preventDefault();
+  document.querySelectorAll('.bad').forEach(x => x.classList.remove('bad'));
+  const problems = [];
+  if (!val('name')) problems.push('name');
+  if (normalizeWA(val('wa')).length < 10) problems.push('wa');
+  if (!/^\S+@\S+\.\S+$/.test(val('email'))) problems.push('email');
+  if (problems.length) {
+    problems.forEach(i => $(i).classList.add('bad'));
+    $('err').textContent = 'Please fill the shop name, a valid WhatsApp number, and your email.';
+    $(problems[0]).focus();
+    return;
+  }
+  $('err').textContent = '';
+  lastMsg = buildMessage();
+  $('f').style.display = 'none';
+  $('thanks').classList.add('show');
+  window.scrollTo(0, 0);
+  $('again').href = waLink(lastMsg);
+  window.location.href = waLink(lastMsg);
+});
+
+$('copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lastMsg); $('copy').textContent = 'Copied'; }
+  catch (_) { prompt('Copy this message:', lastMsg); }
+});
+</script>
+</body>
+</html>
