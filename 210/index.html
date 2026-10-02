@@ -130,6 +130,25 @@ textarea{min-height:92px;resize:vertical}
 .tile-tools button:disabled{opacity:.3}
 .tile.add{border:2px dashed var(--brand);background:#F4F8F6;color:var(--brand);font-weight:600;display:grid;place-items:center;text-align:center;padding:6px}
 
+/* arrange order */
+.count-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.count-row .count{margin:0}
+.btn.small{min-height:40px;padding:0 14px;font-size:14px}
+.arrange-note{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:15px}
+.alist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.arow{background:#fff;border:1px solid var(--line);border-radius:14px;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 4px;user-select:none;-webkit-user-select:none}
+.arow.dragging{box-shadow:0 8px 24px rgba(19,32,29,.25);border-color:var(--brand);position:relative;z-index:5}
+.grip{width:44px;min-height:56px;display:grid;place-items:center;background:none;border:0;font-size:22px;color:var(--muted);touch-action:none;cursor:grab;flex:none}
+.arow .thumb{width:52px;height:52px}
+.arow .aname{flex:1;min-width:0}
+.arow .aname strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .aname span{font-size:13px;color:var(--muted)}
+.apos{font-size:13px;color:var(--muted);width:28px;text-align:center;flex:none}
+.amove{display:flex;gap:4px;flex:none}
+.amove button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:17px}
+.amove button:disabled{opacity:.3}
+.arrange-foot{position:sticky;bottom:0;display:flex;gap:10px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,transparent);margin-top:14px}
+.arrange-foot .primary{flex:1}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;z-index:100;max-width:90vw;font-size:15px;display:none}
 #toast.show{display:block}
 #toast.bad{background:var(--danger)}
@@ -151,14 +170,13 @@ const BUCKET = 'product-images';
 const MAX_PHOTOS = Infinity;
 const app = document.getElementById('app');
 
-
 if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
   app.innerHTML = '<div class="center"><p>Set your Supabase URL and key in data.js first.</p></div>';
   return;
 }
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const state = { user: null, bizList: [], biz: null, fields: [], products: [], tab: 'products', query: '' };
+const state = { user: null, bizList: [], biz: null, fields: [], products: [], tab: 'products', query: '', arranging: false, arr: [], dirty: false };
 let ed = null;        // product editor state
 let logoPending = null;
 let sheetEl = null;
@@ -316,15 +334,124 @@ function renderView() {
 
 /* ---------- products list ---------- */
 function renderProducts() {
+  if (state.arranging) return renderArrange();
   $('#view').innerHTML = `
     <div class="bar">
       <input id="search" type="search" placeholder="Search products" value="${esc(state.query)}" aria-label="Search products">
       <button class="btn primary" data-act="new">Add product</button>
     </div>
-    <p class="count" id="count"></p>
+    <div class="count-row">
+      <p class="count" id="count"></p>
+      ${state.products.length > 1 ? '<button class="btn small" data-act="arrange">Arrange order</button>' : ''}
+    </div>
     <div id="list"></div>`;
   paintList();
 }
+
+/* ---------- arrange order ---------- */
+function startArrange() {
+  state.arranging = true;
+  state.arr = state.products.map(p => p.id);
+  state.dirty = false;
+  renderArrange();
+  window.scrollTo(0, 0);
+}
+
+function arrangeRowHTML(id, i, n) {
+  const p = state.products.find(x => x.id === id);
+  const img = (p.images || [])[0];
+  return `<li class="arow" data-id="${id}">
+    <button class="grip" type="button" aria-label="Drag to reorder ${esc(p.name)}">☰</button>
+    <span class="thumb">${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : '<span class="noimg">No photo</span>'}</span>
+    <span class="aname"><strong>${esc(p.name)}</strong><span>${esc(p.category || 'No category')}</span></span>
+    <span class="apos">${i + 1}</span>
+    <span class="amove">
+      <button type="button" data-act="mv-top" data-id="${id}" ${i === 0 ? 'disabled' : ''} aria-label="Move to top">⤒</button>
+      <button type="button" data-act="mv-up" data-id="${id}" ${i === 0 ? 'disabled' : ''} aria-label="Move up">↑</button>
+      <button type="button" data-act="mv-down" data-id="${id}" ${i === n - 1 ? 'disabled' : ''} aria-label="Move down">↓</button>
+    </span>
+  </li>`;
+}
+
+function renderArrange() {
+  const n = state.arr.length;
+  $('#view').innerHTML = `
+    <div class="arrange-note"><b>Arrange order.</b> Hold and drag ☰ to move a product, or use the arrows. Your website shows products in this order.</div>
+    <ul class="alist" id="alist">${state.arr.map((id, i) => arrangeRowHTML(id, i, n)).join('')}</ul>
+    <div class="arrange-foot">
+      <button class="btn" data-act="arrange-cancel">Cancel</button>
+      <button class="btn primary" data-act="arrange-save" id="arrange-save" ${state.dirty ? '' : 'disabled'}>Save order</button>
+    </div>`;
+}
+
+function moveInArr(id, how) {
+  const i = state.arr.indexOf(id); if (i < 0) return;
+  let j = i;
+  if (how === 'up') j = i - 1; else if (how === 'down') j = i + 1; else if (how === 'top') j = 0;
+  if (j < 0 || j >= state.arr.length || j === i) return;
+  state.arr.splice(i, 1); state.arr.splice(j, 0, id);
+  state.dirty = true;
+  const y = window.scrollY;
+  renderArrange();
+  window.scrollTo(0, y);
+}
+
+function syncArrFromDOM() {
+  const ids = [...document.querySelectorAll('#alist .arow')].map(li => li.dataset.id);
+  if (ids.join() !== state.arr.join()) { state.arr = ids; state.dirty = true; }
+  renderArrange();
+}
+
+async function saveOrder(btn) {
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const oldPos = new Map(state.products.map((p, i) => [p.id, p.sort_order]));
+    const changes = state.arr.map((id, i) => ({ id, pos: i })).filter(c => oldPos.get(c.id) !== c.pos);
+    for (let k = 0; k < changes.length; k += 10) {
+      const chunk = changes.slice(k, k + 10);
+      const results = await Promise.all(chunk.map(c => db.from('products').update({ sort_order: c.pos }).eq('id', c.id).select('id')));
+      for (const r of results) {
+        if (r.error) throw r.error;
+        if (!r.data || !r.data.length) throw new Error('You are not allowed to change this order.');
+      }
+    }
+    state.arranging = false; state.dirty = false;
+    await refreshProducts();
+    renderProducts();
+    toast('Order saved');
+  } catch (e) { fail(e); btn.disabled = false; btn.textContent = 'Save order'; }
+}
+
+function cancelArrange() {
+  if (state.dirty && !confirm('Leave without saving the new order?')) return;
+  state.arranging = false; state.dirty = false;
+  renderProducts();
+}
+
+/* drag and drop (works with finger and mouse) */
+let drag = null;
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.grip'); if (!g) return;
+  const li = g.closest('.arow');
+  drag = { li };
+  li.classList.add('dragging');
+  try { g.setPointerCapture(e.pointerId); } catch (_) {}
+  e.preventDefault();
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const y = e.clientY;
+  if (y < 90) window.scrollBy(0, -14); else if (y > window.innerHeight - 90) window.scrollBy(0, 14);
+  const list = drag.li.parentElement;
+  const sibs = [...list.children].filter(c => c !== drag.li);
+  let before = null;
+  for (const s of sibs) { const r = s.getBoundingClientRect(); if (y < r.top + r.height / 2) { before = s; break; } }
+  if (before) { if (drag.li.nextElementSibling !== before) list.insertBefore(drag.li, before); }
+  else if (list.lastElementChild !== drag.li) list.appendChild(drag.li);
+});
+function endDrag() { if (!drag) return; drag.li.classList.remove('dragging'); drag = null; syncArrFromDOM(); }
+document.addEventListener('pointerup', endDrag);
+document.addEventListener('pointercancel', endDrag);
 
 function rowHTML(p) {
   const img = (p.images || [])[0];
@@ -614,6 +741,12 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   switch (t.dataset.act) {
     case 'new': openEditor(null); break;
+    case 'arrange': startArrange(); break;
+    case 'arrange-cancel': cancelArrange(); break;
+    case 'arrange-save': saveOrder(t); break;
+    case 'mv-top': moveInArr(t.dataset.id, 'top'); break;
+    case 'mv-up': moveInArr(t.dataset.id, 'up'); break;
+    case 'mv-down': moveInArr(t.dataset.id, 'down'); break;
     case 'edit': openEditor(t.dataset.id); break;
     case 'tab': state.tab = t.dataset.tab; renderView(); break;
     case 'signout': await db.auth.signOut(); renderLogin(); break;
@@ -646,7 +779,7 @@ document.addEventListener('change', async e => {
     } catch (err) { fail(err); }
     return;
   }
-  if (t.id === 'biz-switch') { state.tab = 'products'; state.query = ''; loadBusiness(t.value); }
+  if (t.id === 'biz-switch') { state.tab = 'products'; state.query = ''; state.arranging = false; state.dirty = false; loadBusiness(t.value); }
 });
 
 document.addEventListener('input', e => {
