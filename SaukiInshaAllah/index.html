@@ -3,28 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2d0a1e">
-    <meta name="description" content="Fashion boutique — atampa, lace, bags, shoes and more.">
+    <meta name="theme-color" content="#180410">
+    <meta name="description" content="Fashion boutique.">
 
     <title>Sauki Insha Allah</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- =====================================================
-     AMBIENT TEXTILE BACKDROP
-====================================================== -->
 <div class="bg-textile" aria-hidden="true"></div>
 
-
-<!-- =====================================================
-     LOADING STATE
-====================================================== -->
 <div id="loader" class="loader" aria-live="polite">
     <div class="loader-mark" aria-hidden="true">
         <span></span><span></span><span></span>
@@ -32,10 +25,6 @@
     <p class="loader-label">Opening the shop</p>
 </div>
 
-
-<!-- =====================================================
-     OFFLINE STATE
-====================================================== -->
 <div id="offline" class="offline" hidden>
     <div class="offline-card" role="alert">
         <div class="offline-mark" aria-hidden="true">✦</div>
@@ -45,10 +34,6 @@
     </div>
 </div>
 
-
-<!-- =====================================================
-     APP
-====================================================== -->
 <div id="app" hidden>
 
     <header class="site-header">
@@ -82,15 +67,10 @@
         </div>
     </header>
 
-
     <main id="top">
 
-        <!-- =====================================================
-             HERO
-        ====================================================== -->
         <section class="hero">
             <div class="hero-logo-bg" id="hero-logo-bg" aria-hidden="true"></div>
-
             <div class="hero-textile" aria-hidden="true"></div>
 
             <div class="hero-inner container">
@@ -119,10 +99,6 @@
             </div>
         </section>
 
-
-        <!-- =====================================================
-             COLLECTION
-        ====================================================== -->
         <section id="collection" class="collection">
             <div class="container">
 
@@ -141,7 +117,7 @@
                             <circle cx="11" cy="11" r="7"/>
                             <path d="m20 20-3.5-3.5"/>
                         </svg>
-                        <input id="search-input" type="search" placeholder="Search atampa, lace, bags…" autocomplete="off">
+                        <input id="search-input" type="search" placeholder="Search…" autocomplete="off">
                     </label>
 
                     <label class="sort">
@@ -168,20 +144,12 @@
             </div>
         </section>
 
-
-        <!-- =====================================================
-             INFO SECTIONS
-        ====================================================== -->
         <section id="info" class="info">
             <div class="container">
                 <div id="info-grid" class="info-grid"></div>
             </div>
         </section>
 
-
-        <!-- =====================================================
-             CONTACT
-        ====================================================== -->
         <section id="contact" class="contact">
             <div class="container">
                 <div class="contact-card">
@@ -196,7 +164,6 @@
         </section>
 
     </main>
-
 
     <footer class="site-footer">
         <div class="container">
@@ -216,10 +183,7 @@
 
 </div>
 
-
-<!-- =====================================================
-     PRODUCT MODAL
-====================================================== -->
+<!-- PRODUCT MODAL -->
 <div id="product-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
     <div class="modal-backdrop" data-close-modal></div>
 
@@ -233,10 +197,18 @@
         <div class="modal-layout">
 
             <div class="modal-gallery">
-                <div class="gallery-main">
-                    <img id="gallery-main-img" src="" alt="">
+                <div class="gallery-main" id="gallery-main">
+                    <div class="gallery-track" id="gallery-track"></div>
+                    <button type="button" class="gallery-nav prev" id="gallery-prev" aria-label="Previous image">‹</button>
+                    <button type="button" class="gallery-nav next" id="gallery-next" aria-label="Next image">›</button>
                 </div>
-                <div id="gallery-thumbs" class="gallery-thumbs"></div>
+
+                <div class="gallery-dots" id="gallery-dots"></div>
+
+                <div class="gallery-collage-wrap">
+                    <span class="collage-label">All photos</span>
+                    <div class="gallery-collage" id="gallery-collage"></div>
+                </div>
             </div>
 
             <div class="modal-info">
@@ -265,15 +237,11 @@
     </div>
 </div>
 
-
-<!-- =====================================================
-     CART DRAWER
-====================================================== -->
+<!-- CART DRAWER -->
 <div id="cart-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" hidden>
     <div class="drawer-backdrop" data-close-cart></div>
 
     <aside class="drawer-panel">
-
         <header class="drawer-head">
             <div>
                 <span class="eyebrow">Your order</span>
@@ -313,19 +281,12 @@
             <button id="cart-send" class="btn btn-primary btn-block" type="button">Send order on WhatsApp</button>
             <p id="cart-hint" class="cart-hint"></p>
         </div>
-
     </aside>
 </div>
 
-
-<!-- =====================================================
-     TOAST
-====================================================== -->
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-
 
 <script src="../data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
-

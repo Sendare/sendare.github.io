@@ -1,19 +1,14 @@
 /* =========================================================
    SAUKI INSHA ALLAH — Storefront
-   Reads from Supabase via loadShop() in /data.js
 ========================================================= */
 
-
-/* =========================================================
-   CONFIG
-========================================================= */
 const SHOP_SLUG = "sauki-insha-allah";
 const CART_KEY  = `${SHOP_SLUG}.cart.v1`;
 
+const CARD_IMAGE_LIMIT = 5;
+const AUTOSLIDE_MS = 3000;
+const USER_PAUSE_MS = 5000;
 
-/* =========================================================
-   STATE
-========================================================= */
 let BUSINESS   = null;
 let FIELDS     = [];
 let PRODUCTS   = [];
@@ -21,22 +16,18 @@ let CATEGORIES = [];
 
 let CART = [];
 
-let VIEW = {
-    category: "all",
-    search: "",
-    sort: "recommended"
-};
+let VIEW = { category: "all", search: "", sort: "recommended" };
 
-let MODAL = {
-    product: null,
-    selections: {},
-    images: [],
-    activeIndex: 0
-};
+/* Single source of truth for which layer is on top of history */
+let HISTORY_LAYER = null;   // null | "modal" | "cart"
 
-let HISTORY = { modal: false, cart: false };
-let lastFocused = null;
-let toastTimer = null;
+let LAST_FOCUS = null;
+let TOAST_TIMER = null;
+
+/* Per-card carousel state */
+const CARD_STATE = new Map();   // productId -> { index, pausedUntil, images }
+let CARD_TIMER = null;
+let VISIBLE_CARDS = new Set();
 
 
 /* =========================================================
@@ -62,41 +53,26 @@ const ICONS = {
 
 
 /* =========================================================
-   SMALL HELPERS
+   HELPERS
 ========================================================= */
 const $  = (sel, root) => (root || document).querySelector(sel);
 const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
 
 function esc(v) {
     return String(v == null ? "" : v)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-
-function hasValue(v) {
-    return v !== null && v !== undefined && String(v).trim() !== "";
-}
+function hasValue(v) { return v !== null && v !== undefined && String(v).trim() !== ""; }
 
 function currencySymbol() {
     const cur = String(BUSINESS?.currency || "naira").toLowerCase();
-    const map = {
-        naira: "₦", ngn: "₦",
-        dollar: "$", usd: "$",
-        pound: "£", gbp: "£",
-        euro: "€", eur: "€",
-        cedi: "₵", ghs: "₵",
-        rand: "R", zar: "R"
-    };
+    const map = { naira: "₦", ngn: "₦", dollar: "$", usd: "$",
+                  pound: "£", gbp: "£", euro: "€", eur: "€",
+                  cedi: "₵", ghs: "₵", rand: "R", zar: "R" };
     return map[cur] || "";
 }
-
-function money(n) {
-    const num = Number(n || 0);
-    return currencySymbol() + num.toLocaleString("en-NG");
-}
+function money(n) { return currencySymbol() + Number(n || 0).toLocaleString("en-NG"); }
 
 function isValidUrl(v) {
     if (!hasValue(v)) return false;
@@ -114,40 +90,17 @@ function initials(name) {
 }
 
 function placeholderImage() {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750">
-        <rect width="600" height="750" fill="#f5ecdb"/>
-        <g transform="translate(300 375)" fill="none" stroke="#c48c3a" stroke-width="1.4">
-            <path d="M0 -55 L55 0 L0 55 L-55 0 Z"/>
-            <path d="M0 -28 L28 0 L0 28 L-28 0 Z"/>
-            <circle cx="0" cy="0" r="3" fill="#c48c3a"/>
-        </g>
-        <text x="300" y="475" text-anchor="middle" fill="#968a9e" font-family="Georgia" font-size="12" letter-spacing="4">NO IMAGE</text>
-    </svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 600 750"><rect width="600" height="750" fill="#f5ecdb"/><g transform="translate(300 375)" fill="none" stroke="#c48c3a" stroke-width="1.4"><path d="M0 -55 L55 0 L0 55 L-55 0 Z"/><path d="M0 -28 L28 0 L0 28 L-28 0 Z"/><circle cx="0" cy="0" r="3" fill="#c48c3a"/></g><text x="300" y="475" text-anchor="middle" fill="#968a9e" font-family="Georgia" font-size="12" letter-spacing="4">NO IMAGE</text></svg>`;
     return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
 }
 
-function productImage(p) {
-    if (p.image) return p.image;
-    if (p.images && p.images.length) return p.images[0];
-    return placeholderImage();
-}
-
-
-/* =========================================================
-   PHONE NUMBER PARSING
-   Handles values like:
-     "0814..., 0803..."   → ["0814...", "0803..."]
-     "0814... / 0803..."  → ["0814...", "0803..."]
-     "0814...\\n0803..."  → ["0814...", "0803..."]
-   Renders joined with ", " so WhatsApp doesn't concatenate.
-========================================================= */
-function splitPhones(raw) {
-    if (!hasValue(raw)) return [];
-
-    return String(raw)
-        .split(/[\s,;\/|]+|\n+/)
-        .map(s => s.trim())
-        .filter(Boolean);
+function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }
 
 
@@ -171,9 +124,18 @@ async function boot() {
         PRODUCTS   = Array.isArray(shop.products) ? shop.products : [];
         CATEGORIES = Array.isArray(shop.categories) ? shop.categories : [];
 
+        /* Prepare randomized image order for each product (fresh on every page load) */
+        PRODUCTS.forEach(p => {
+            const raw = (p.images && p.images.length)
+                ? p.images.filter(isValidUrl)
+                : (isValidUrl(p.image) ? [p.image] : []);
+            p._images = raw.length ? shuffle(raw) : [placeholderImage()];
+        });
+
         loadCartFromStorage();
         renderAll();
         bindEvents();
+        startCardTimer();
 
         hideLoader();
         $("#app").hidden = false;
@@ -185,10 +147,6 @@ async function boot() {
     }
 }
 
-
-/* =========================================================
-   RENDER EVERYTHING
-========================================================= */
 function renderAll() {
     renderBusiness();
     renderHero();
@@ -205,9 +163,9 @@ function renderAll() {
    BUSINESS / HEADER
 ========================================================= */
 function renderBusiness() {
-    const name    = BUSINESS.name || "Shop";
+    const name = BUSINESS.name || "Shop";
     const tagline = BUSINESS.tagline || "";
-    const logo    = BUSINESS.logo || "";
+    const logo = BUSINESS.logo || "";
 
     document.title = name;
 
@@ -220,16 +178,12 @@ function renderBusiness() {
 
     if (isValidUrl(logo)) {
         const img = $("#header-logo");
-        img.src = logo;
-        img.alt = name;
-        img.hidden = false;
-        img.onerror = () => { img.hidden = true; showFallbackMark(); };
+        img.src = logo; img.alt = name; img.hidden = false;
+        img.onerror = () => { img.hidden = true; showFallback(); };
         $("#header-fallback").textContent = "";
-    } else {
-        showFallbackMark();
-    }
+    } else showFallback();
 
-    function showFallbackMark() {
+    function showFallback() {
         $("#header-logo").hidden = true;
         $("#header-fallback").textContent = initials(name);
     }
@@ -240,20 +194,18 @@ function renderBusiness() {
    HERO
 ========================================================= */
 function renderHero() {
-    const name     = BUSINESS.name || "";
-    const tagline  = BUSINESS.tagline || "";
-    const desc     = BUSINESS.description || "";
+    const name = BUSINESS.name || "";
+    const tagline = BUSINESS.tagline || "";
+    const desc = BUSINESS.description || "";
     const location = BUSINESS.location || "";
-    const logo     = BUSINESS.logo || "";
+    const logo = BUSINESS.logo || "";
 
     $("#hero-name").textContent    = name;
     $("#hero-tagline").textContent = tagline;
     $("#hero-tagline").hidden      = !hasValue(tagline);
     $("#hero-desc").textContent    = desc;
     $("#hero-desc").hidden         = !hasValue(desc);
-
-    const eyebrow = location ? `Est. — ${location}` : "Fashion Boutique";
-    $("#hero-eyebrow").textContent = eyebrow;
+    $("#hero-eyebrow").textContent = location ? `Est. — ${location}` : "Fashion Boutique";
 
     if (hasValue(BUSINESS.whatsapp)) {
         const wa = $("#hero-whatsapp");
@@ -261,34 +213,22 @@ function renderHero() {
         wa.hidden = false;
     }
 
-    // Logo watermark behind the hero text — the "that's my site" moment
     const bg = $("#hero-logo-bg");
     if (bg) {
         if (isValidUrl(logo)) {
             bg.style.backgroundImage = `url("${logo}")`;
             bg.hidden = false;
-        } else {
-            bg.hidden = true;
-        }
+        } else bg.hidden = true;
     }
 
-    // Hero panel — the actual logo inside the gold frame, shown whole
     if (isValidUrl(logo)) {
         const img = $("#hero-logo");
-        img.src = logo;
-        img.alt = name;
-        img.hidden = false;
-        img.onerror = () => {
-            img.hidden = true;
-            const mono = $("#hero-monogram");
-            if (mono) mono.textContent = initials(name);
-        };
-        const mono = $("#hero-monogram");
-        if (mono) mono.textContent = "";
+        img.src = logo; img.alt = name; img.hidden = false;
+        img.onerror = () => { img.hidden = true; $("#hero-monogram").textContent = initials(name); };
+        $("#hero-monogram").textContent = "";
     } else {
         $("#hero-logo").hidden = true;
-        const mono = $("#hero-monogram");
-        if (mono) mono.textContent = initials(name);
+        $("#hero-monogram").textContent = initials(name);
     }
 }
 
@@ -340,6 +280,10 @@ function renderProducts() {
 
     const list = filterProducts();
 
+    /* Tear down old carousels */
+    CARD_STATE.clear();
+    VISIBLE_CARDS.clear();
+
     if (!list.length) {
         grid.innerHTML = "";
         $("#empty").hidden = false;
@@ -354,17 +298,21 @@ function renderProducts() {
     grid.innerHTML = list.map(productCardHTML).join("");
     grid.dataset.rendered = "1";
 
+    /* Init carousels + observers */
+    list.forEach(p => initCardCarousel(p));
+
+    /* Broken image fallbacks */
     $$("img", grid).forEach(img => {
         img.addEventListener("error", () => {
+            if (img.dataset.fallback) return;
+            img.dataset.fallback = "1";
             img.src = placeholderImage();
         }, { once: true });
     });
 }
 
-
 function filterProducts() {
     const q = VIEW.search.trim().toLowerCase();
-
     let list = PRODUCTS.filter(p => {
         if (VIEW.category !== "all" && p.category !== VIEW.category) return false;
         if (!q) return true;
@@ -374,29 +322,23 @@ function filterProducts() {
 
     list = list.slice();
 
-    if (VIEW.sort === "price-low") {
-        list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else if (VIEW.sort === "price-high") {
-        list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    } else if (VIEW.sort === "new") {
-        list.sort((a, b) => Number(b.isNew) - Number(a.isNew));
-    } else {
-        list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-    }
+    if (VIEW.sort === "price-low") list.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    else if (VIEW.sort === "price-high") list.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    else if (VIEW.sort === "new") list.sort((a, b) => Number(b.isNew) - Number(a.isNew));
+    else list.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
     return list;
 }
 
-
 function productCardHTML(p) {
-    const img = productImage(p);
     const name = p.name || "Product";
     const cat = p.category || "";
     const available = p.available !== false;
+    const images = p._images.slice(0, CARD_IMAGE_LIMIT);
 
     const badges = [];
-    if (!available)         badges.push(`<span class="badge out">Sold out</span>`);
-    if (p.onSale)           badges.push(`<span class="badge sale">−${p.discountPercent}%</span>`);
+    if (!available) badges.push(`<span class="badge out">Sold out</span>`);
+    if (p.onSale)   badges.push(`<span class="badge sale">−${p.discountPercent}%</span>`);
     if (p.featured && available) badges.push(`<span class="badge feat">Featured</span>`);
     if (p.isNew && available)    badges.push(`<span class="badge new">New in</span>`);
 
@@ -405,14 +347,25 @@ function productCardHTML(p) {
         ${p.onSale && p.oldPrice ? `<del class="price-old">${esc(money(p.oldPrice))}</del>` : ""}
     `;
 
-    const quickDisabled = available ? "" : "disabled";
+    const slidesHTML = images.map((img, i) => `
+        <img class="card-slide" src="${esc(img)}" alt="${esc(name)}"
+             ${i === 0 ? "" : 'loading="lazy"'} decoding="async">
+    `).join("");
+
+    const dotsHTML = images.map((_, i) =>
+        `<span class="${i === 0 ? "active" : ""}"></span>`
+    ).join("");
 
     return `
         <article class="card" data-product-id="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(name)}">
             <div class="card-media">
-                <img src="${esc(img)}" alt="${esc(name)}" loading="lazy" decoding="async">
+                <div class="card-carousel" data-card-carousel="${esc(p.id)}">
+                    <div class="card-track">${slidesHTML}</div>
+                    ${images.length > 1 ? `<div class="card-dots">${dotsHTML}</div>` : ""}
+                </div>
                 <div class="card-badges">${badges.join("")}</div>
-                <button class="card-quick" type="button" data-quick-add="${esc(p.id)}" aria-label="Add ${esc(name)} to cart" ${quickDisabled}>
+                <button class="card-quick" type="button" data-quick-add="${esc(p.id)}"
+                        aria-label="Add ${esc(name)} to cart" ${available ? "" : "disabled"}>
                     ${ICONS.plus}
                 </button>
             </div>
@@ -427,8 +380,108 @@ function productCardHTML(p) {
 
 
 /* =========================================================
-   INFO SECTIONS
-   Uses white-space: pre-line in CSS so multi-line values render.
+   CARD CAROUSELS — auto-advance + touch swipe + intersection
+========================================================= */
+function initCardCarousel(product) {
+    const carousel = $(`[data-card-carousel="${CSS.escape(String(product.id))}"]`);
+    if (!carousel) return;
+
+    const track = carousel.querySelector(".card-track");
+    const dots  = carousel.querySelectorAll(".card-dots span");
+    const count = track.children.length;
+    if (count < 1) return;
+
+    CARD_STATE.set(String(product.id), {
+        index: 0,
+        count,
+        track,
+        dots,
+        pausedUntil: 0
+    });
+
+    /* IntersectionObserver — only autoplay when visible */
+    if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                const id = String(product.id);
+                if (entry.isIntersecting) VISIBLE_CARDS.add(id);
+                else VISIBLE_CARDS.delete(id);
+            });
+        }, { threshold: 0.4 });
+        io.observe(carousel);
+    } else {
+        VISIBLE_CARDS.add(String(product.id));
+    }
+
+    /* Touch swipe (delegated via pointer events — works for mouse too) */
+    let startX = 0, startY = 0, active = false;
+
+    carousel.addEventListener("pointerdown", e => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        startX = e.clientX;
+        startY = e.clientY;
+        active = true;
+    });
+
+    carousel.addEventListener("pointerup", e => {
+        if (!active) return;
+        active = false;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        /* Ignore if vertical scroll intent */
+        if (Math.abs(dy) > Math.abs(dx)) return;
+
+        if (Math.abs(dx) > 40) {
+            const state = CARD_STATE.get(String(product.id));
+            if (!state) return;
+            if (dx < 0) advanceCard(product.id, +1);
+            else        advanceCard(product.id, -1);
+            state.pausedUntil = Date.now() + USER_PAUSE_MS;
+            e.preventDefault();
+        }
+    });
+
+    carousel.addEventListener("pointercancel", () => { active = false; });
+}
+
+function advanceCard(productId, dir) {
+    const state = CARD_STATE.get(String(productId));
+    if (!state) return;
+    let next = state.index + dir;
+    if (next < 0) next = state.count - 1;
+    if (next >= state.count) next = 0;
+    setCardIndex(productId, next);
+}
+
+function setCardIndex(productId, index) {
+    const state = CARD_STATE.get(String(productId));
+    if (!state) return;
+    state.index = index;
+    state.track.style.transform = `translateX(${-index * 100}%)`;
+    state.dots.forEach((dot, i) => {
+        dot.classList.toggle("active", i === index);
+    });
+}
+
+function startCardTimer() {
+    if (CARD_TIMER) return;
+    CARD_TIMER = setInterval(() => {
+        const now = Date.now();
+        VISIBLE_CARDS.forEach(id => {
+            const state = CARD_STATE.get(id);
+            if (!state || state.count < 2) return;
+            if (now < state.pausedUntil) return;
+            /* Don't autoplay while modal is open */
+            if (HISTORY_LAYER === "modal") return;
+            advanceCard(id, +1);
+        });
+    }, AUTOSLIDE_MS);
+}
+
+
+/* =========================================================
+   INFO / CONTACT / FOOTER
 ========================================================= */
 function renderInfoSections() {
     const container = $("#info-grid");
@@ -438,43 +491,14 @@ function renderInfoSections() {
 
     if (hasValue(BUSINESS.location)) {
         const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(BUSINESS.location)}`;
-        cards.push({
-            icon: ICONS.pin,
-            label: "Location",
-            value: BUSINESS.location,
-            link: { href: mapUrl, text: "Open in Maps", external: true }
-        });
+        cards.push({ icon: ICONS.pin, label: "Location", value: BUSINESS.location,
+                     link: { href: mapUrl, text: "Open in Maps" } });
     }
+    if (hasValue(BUSINESS.delivery))     cards.push({ icon: ICONS.truck, label: "Delivery", value: BUSINESS.delivery });
+    if (hasValue(BUSINESS.openingHours)) cards.push({ icon: ICONS.clock, label: "Opening Hours", value: BUSINESS.openingHours });
+    if (hasValue(BUSINESS.paymentMethods)) cards.push({ icon: ICONS.card, label: "Payment", value: BUSINESS.paymentMethods });
 
-    if (hasValue(BUSINESS.delivery)) {
-        cards.push({
-            icon: ICONS.truck,
-            label: "Delivery",
-            value: BUSINESS.delivery
-        });
-    }
-
-    if (hasValue(BUSINESS.openingHours)) {
-        cards.push({
-            icon: ICONS.clock,
-            label: "Opening Hours",
-            value: BUSINESS.openingHours
-        });
-    }
-
-    if (hasValue(BUSINESS.paymentMethods)) {
-        cards.push({
-            icon: ICONS.card,
-            label: "Payment",
-            value: BUSINESS.paymentMethods
-        });
-    }
-
-    if (!cards.length) {
-        $(".info").hidden = true;
-        return;
-    }
-
+    if (!cards.length) { $(".info").hidden = true; return; }
     $(".info").hidden = false;
 
     cards.forEach(card => {
@@ -484,21 +508,17 @@ function renderInfoSections() {
             <span class="info-mark">${card.icon}</span>
             <span class="info-label">${esc(card.label)}</span>
             <p class="info-value">${esc(card.value)}</p>
-            ${card.link ? `
-                <a class="info-link" href="${esc(card.link.href)}"
-                   ${card.link.external ? 'target="_blank" rel="noopener noreferrer"' : ""}>
-                    ${esc(card.link.text)} ${ICONS.arrowUp}
-                </a>` : ""}
+            ${card.link ? `<a class="info-link" href="${esc(card.link.href)}" target="_blank" rel="noopener noreferrer">${esc(card.link.text)} ${ICONS.arrowUp}</a>` : ""}
         `;
         container.appendChild(el);
     });
 }
 
+function splitPhones(raw) {
+    if (!hasValue(raw)) return [];
+    return String(raw).split(/[\s,;\/|]+|\n+/).map(s => s.trim()).filter(Boolean);
+}
 
-/* =========================================================
-   CONTACT
-   Phone numbers split and joined with ", " so they don't merge.
-========================================================= */
 function renderContact() {
     const container = $("#contact-actions");
     container.innerHTML = "";
@@ -506,43 +526,27 @@ function renderContact() {
     const actions = [];
 
     if (hasValue(BUSINESS.whatsapp)) {
-        actions.push({
-            label: "WhatsApp",
-            icon: ICONS.whatsapp,
-            href: `https://wa.me/${BUSINESS.whatsapp}`,
-            external: true
-        });
+        actions.push({ label: "WhatsApp", icon: ICONS.whatsapp,
+                       href: `https://wa.me/${BUSINESS.whatsapp}`, external: true });
     }
 
-    // Phone — may contain more than one number. Split and display each.
-    const phones = splitPhones(BUSINESS.phone);
-    phones.forEach(num => {
-        actions.push({
-            label: num,
-            icon: ICONS.phone,
-            href: `tel:${num.replace(/\s+/g, "")}`
-        });
+    splitPhones(BUSINESS.phone).forEach(num => {
+        actions.push({ label: num, icon: ICONS.phone,
+                       href: `tel:${num.replace(/\s+/g, "")}` });
     });
 
-    // Socials
     const socials = BUSINESS.socials || {};
     Object.keys(socials).forEach(key => {
         const url = socials[key];
         if (!isValidUrl(url)) return;
-
         actions.push({
             label: key.charAt(0).toUpperCase() + key.slice(1),
             icon: ICONS[key] || ICONS.mail,
-            href: url,
-            external: true
+            href: url, external: true
         });
     });
 
-    if (!actions.length) {
-        $(".contact").hidden = true;
-        return;
-    }
-
+    if (!actions.length) { $(".contact").hidden = true; return; }
     $(".contact").hidden = false;
     $("#contact-message").textContent =
         BUSINESS.contactMessage || "We'd love to hear from you.";
@@ -551,152 +555,149 @@ function renderContact() {
         const el = document.createElement("a");
         el.className = "contact-action";
         el.href = a.href;
-        if (a.external) {
-            el.target = "_blank";
-            el.rel = "noopener noreferrer";
-        }
+        if (a.external) { el.target = "_blank"; el.rel = "noopener noreferrer"; }
         el.innerHTML = `${a.icon}<span>${esc(a.label)}</span>`;
         container.appendChild(el);
     });
 }
 
-
-/* =========================================================
-   FOOTER
-========================================================= */
 function renderFooter() {
     const container = $("#footer-socials");
     container.innerHTML = "";
-
     const socials = BUSINESS.socials || {};
     Object.keys(socials).forEach(key => {
         const url = socials[key];
         if (!isValidUrl(url)) return;
-        const icon = ICONS[key] || ICONS.mail;
-
         const a = document.createElement("a");
-        a.href = url;
-        a.target = "_blank";
-        a.rel = "noopener noreferrer";
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
         a.setAttribute("aria-label", key);
-        a.innerHTML = icon;
+        a.innerHTML = ICONS[key] || ICONS.mail;
         container.appendChild(a);
     });
 }
 
 
 /* =========================================================
-   PRODUCT MODAL
+   PRODUCT MODAL — main gallery + collage
 ========================================================= */
+let MODAL_PRODUCT = null;
+let MODAL_IMAGES = [];
+let MODAL_INDEX = 0;
+let MODAL_SELECTIONS = {};
+
 function openModal(product) {
     if (!product) return;
 
-    MODAL.product = product;
-    MODAL.selections = {};
-    MODAL.images = (product.images && product.images.length)
-        ? product.images.slice()
-        : (product.image ? [product.image] : [placeholderImage()]);
-    MODAL.activeIndex = 0;
+    MODAL_PRODUCT = product;
+    MODAL_IMAGES = product._images.slice();
+    MODAL_INDEX = 0;
+    MODAL_SELECTIONS = {};
 
     renderModalContent();
 
     const modal = $("#product-modal");
     modal.hidden = false;
     document.body.classList.add("modal-open");
-
-    lastFocused = document.activeElement;
+    LAST_FOCUS = document.activeElement;
 
     requestAnimationFrame(() => modal.classList.add("active"));
 
-    if (!HISTORY.modal) {
+    if (HISTORY_LAYER !== "modal") {
         history.pushState({ layer: "modal" }, "");
-        HISTORY.modal = true;
+        HISTORY_LAYER = "modal";
     }
 
     setTimeout(() => $("#modal-close").focus(), 120);
 }
 
-
 function renderModalContent() {
-    const p = MODAL.product;
+    const p = MODAL_PRODUCT;
     if (!p) return;
 
     const name = p.name || "Product";
     const available = p.available !== false;
 
-    // Gallery
-    const galleryMain = $("#gallery-main-img");
-    galleryMain.src = MODAL.images[0];
-    galleryMain.alt = name;
-    galleryMain.onerror = () => { galleryMain.src = placeholderImage(); };
+    /* Build gallery track once */
+    const track = $("#gallery-track");
+    track.innerHTML = MODAL_IMAGES.map((img, i) => `
+        <img src="${esc(img)}" alt="${esc(name)} photo ${i + 1}"
+             ${i === 0 ? "" : 'loading="lazy"'} decoding="async">
+    `).join("");
+    track.style.transform = "translateX(0)";
 
-    const thumbs = $("#gallery-thumbs");
-    thumbs.innerHTML = "";
-    if (MODAL.images.length > 1) {
-        MODAL.images.forEach((img, i) => {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "gallery-thumb" + (i === 0 ? " active" : "");
-            btn.setAttribute("aria-label", `Image ${i + 1}`);
-            btn.innerHTML = `<img src="${esc(img)}" alt="">`;
-            btn.querySelector("img").onerror = e => { e.target.src = placeholderImage(); };
-            btn.addEventListener("click", () => {
-                MODAL.activeIndex = i;
-                galleryMain.src = img;
-                $$(".gallery-thumb", thumbs).forEach((t, j) => {
-                    t.classList.toggle("active", j === i);
-                });
-            });
-            thumbs.appendChild(btn);
-        });
-        thumbs.hidden = false;
+    /* Dots */
+    const dotsEl = $("#gallery-dots");
+    if (MODAL_IMAGES.length > 1) {
+        dotsEl.innerHTML = MODAL_IMAGES.map((_, i) =>
+            `<span class="${i === 0 ? "active" : ""}"></span>`
+        ).join("");
+        dotsEl.hidden = false;
     } else {
-        thumbs.hidden = true;
+        dotsEl.innerHTML = "";
+        dotsEl.hidden = true;
     }
 
-    // Header info
+    /* Nav arrows only if more than 1 image */
+    $("#gallery-prev").hidden = MODAL_IMAGES.length <= 1;
+    $("#gallery-next").hidden = MODAL_IMAGES.length <= 1;
+
+    /* Collage — every image, current highlighted */
+    renderCollage();
+
+    /* Header info */
     $("#modal-category").textContent = p.category || "";
     $("#modal-category").hidden = !hasValue(p.category);
     $("#modal-title").textContent = name;
-
     $("#modal-price").textContent = money(p.price);
 
     const oldPrice = $("#modal-old-price");
     if (p.onSale && p.oldPrice) {
         oldPrice.textContent = money(p.oldPrice);
         oldPrice.hidden = false;
-    } else {
-        oldPrice.hidden = true;
-    }
+    } else oldPrice.hidden = true;
 
     const discount = $("#modal-discount");
     if (p.onSale && p.discountPercent) {
         discount.textContent = `−${p.discountPercent}%`;
         discount.hidden = false;
-    } else {
-        discount.hidden = true;
-    }
+    } else discount.hidden = true;
 
-    // Badges
-    const badgesEl = $("#modal-badges");
     const badges = [];
-    if (!available)  badges.push(`<span class="badge out">Sold out</span>`);
+    if (!available) badges.push(`<span class="badge out">Sold out</span>`);
     if (p.featured && available) badges.push(`<span class="badge feat">Featured</span>`);
     if (p.isNew && available)    badges.push(`<span class="badge new">New in</span>`);
-    badgesEl.innerHTML = badges.join("");
+    $("#modal-badges").innerHTML = badges.join("");
 
-    // Description
     const desc = $("#modal-description");
     desc.textContent = p.description || "";
     desc.hidden = !hasValue(p.description);
 
-    // Dynamic fields
     renderModalFields(p);
-
-    // Add button state
     updateModalAddButton();
 }
 
+function renderCollage() {
+    const wrap = $("#gallery-collage");
+    if (!wrap) return;
+    wrap.innerHTML = MODAL_IMAGES.map((img, i) => `
+        <button type="button"
+                class="collage-thumb ${i === MODAL_INDEX ? "active" : ""}"
+                data-collage-index="${i}"
+                aria-label="View photo ${i + 1}">
+            <img src="${esc(img)}" alt="" loading="lazy" decoding="async">
+        </button>
+    `).join("");
+}
+
+function goToImage(index) {
+    if (index < 0) index = MODAL_IMAGES.length - 1;
+    if (index >= MODAL_IMAGES.length) index = 0;
+    MODAL_INDEX = index;
+    $("#gallery-track").style.transform = `translateX(${-index * 100}%)`;
+    $$("#gallery-dots span").forEach((d, i) => d.classList.toggle("active", i === index));
+    $$(".collage-thumb", $("#gallery-collage")).forEach((t, i) =>
+        t.classList.toggle("active", i === index));
+}
 
 function renderModalFields(product) {
     const container = $("#modal-fields");
@@ -715,7 +716,9 @@ function renderModalFields(product) {
                 <span class="field-label">${esc(field.label || field.key)}</span>
                 <div class="choices">
                     ${val.map(opt => `
-                        <button type="button" class="choice" data-choice="${esc(opt)}" data-field-key="${esc(field.key)}">
+                        <button type="button" class="choice"
+                                data-choice="${esc(opt)}"
+                                data-field-key="${esc(field.key)}">
                             ${esc(opt)}
                         </button>
                     `).join("")}
@@ -732,28 +735,7 @@ function renderModalFields(product) {
             container.appendChild(el);
         }
     });
-
-    container.addEventListener("click", handleChoiceClick);
 }
-
-
-function handleChoiceClick(e) {
-    const btn = e.target.closest(".choice");
-    if (!btn) return;
-
-    const key = btn.dataset.fieldKey;
-    const value = btn.dataset.choice;
-
-    MODAL.selections[key] = value;
-
-    const group = btn.closest(".field-choices");
-    $$(".choice", group).forEach(c => {
-        c.classList.toggle("selected", c === btn);
-    });
-
-    updateModalAddButton();
-}
-
 
 function requiredFieldsFor(product) {
     return FIELDS.filter(f => {
@@ -762,431 +744,8 @@ function requiredFieldsFor(product) {
     });
 }
 
-
 function updateModalAddButton() {
-    const p = MODAL.product;
+    const p = MODAL_PRODUCT;
     if (!p) return;
-
     const btn = $("#modal-add");
-    const hint = $("#modal-hint");
-    const available = p.available !== false;
-
-    if (!available) {
-        btn.disabled = true;
-        btn.textContent = "Sold out";
-        hint.textContent = "This piece is currently unavailable.";
-        return;
-    }
-
-    const required = requiredFieldsFor(p);
-    const missing = required.filter(f => !MODAL.selections[f.key]);
-
-    if (missing.length) {
-        btn.disabled = true;
-        btn.textContent = "Choose options";
-        hint.textContent = `Please pick: ${missing.map(f => f.label || f.key).join(", ")}`;
-        return;
-    }
-
-    btn.disabled = false;
-    btn.textContent = "Add to cart";
-    hint.textContent = "";
-}
-
-
-function buildOptionsString(product, selections) {
-    return FIELDS
-        .map(f => {
-            const val = product.attributes ? product.attributes[f.key] : null;
-            if (val == null || val === "") return null;
-            if (Array.isArray(val)) return selections[f.key] || null;
-            return String(val);
-        })
-        .filter(v => v != null && v !== "")
-        .join(", ");
-}
-
-
-function closeModal() {
-    if (!HISTORY.modal) {
-        closeModalInternal();
-        return;
-    }
-    history.back();
-}
-
-
-function closeModalInternal() {
-    const modal = $("#product-modal");
-    if (!modal || modal.hidden) return;
-
-    modal.classList.remove("active");
-    document.body.classList.remove("modal-open");
-    HISTORY.modal = false;
-    MODAL.product = null;
-    MODAL.selections = {};
-
-    setTimeout(() => { modal.hidden = true; }, 320);
-
-    if (lastFocused && typeof lastFocused.focus === "function") {
-        lastFocused.focus();
-        lastFocused = null;
-    }
-}
-
-
-/* =========================================================
-   CART
-========================================================= */
-function loadCartFromStorage() {
-    try {
-        const raw = localStorage.getItem(CART_KEY);
-        CART = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(CART)) CART = [];
-    } catch {
-        CART = [];
-    }
-}
-
-
-function saveCartToStorage() {
-    try {
-        localStorage.setItem(CART_KEY, JSON.stringify(CART));
-    } catch { /* silent */ }
-}
-
-
-function cartKeyFor(product, options) {
-    return `${product.id}::${options || ""}`;
-}
-
-
-function addToCart(product, options) {
-    if (!product || product.available === false) return;
-
-    const key = cartKeyFor(product, options);
-    const existing = CART.find(i => i.key === key);
-
-    if (existing) {
-        existing.qty += 1;
-    } else {
-        CART.push({
-            key,
-            id: product.id,
-            name: product.name,
-            price: Number(product.price) || 0,
-            image: productImage(product),
-            qty: 1,
-            options: options || ""
-        });
-    }
-
-    saveCartToStorage();
-    renderCart();
-}
-
-
-function removeFromCart(key) {
-    CART = CART.filter(i => i.key !== key);
-    saveCartToStorage();
-    renderCart();
-}
-
-
-function changeQty(key, delta) {
-    const item = CART.find(i => i.key === key);
-    if (!item) return;
-    item.qty += delta;
-    if (item.qty <= 0) {
-        removeFromCart(key);
-        return;
-    }
-    saveCartToStorage();
-    renderCart();
-}
-
-
-function cartTotal() {
-    return CART.reduce((sum, i) => sum + i.price * i.qty, 0);
-}
-
-
-function cartCount() {
-    return CART.reduce((sum, i) => sum + i.qty, 0);
-}
-
-
-function renderCart() {
-    const itemsEl = $("#cart-items");
-    const emptyEl = $("#cart-empty");
-    const footerEl = $("#cart-footer");
-    const countEl = $("#cart-count");
-    const totalEl = $("#cart-total");
-
-    const count = cartCount();
-    if (count > 0) {
-        countEl.textContent = String(count);
-        countEl.hidden = false;
-    } else {
-        countEl.hidden = true;
-    }
-
-    if (!CART.length) {
-        itemsEl.innerHTML = "";
-        itemsEl.hidden = true;
-        emptyEl.hidden = false;
-        footerEl.hidden = true;
-        return;
-    }
-
-    itemsEl.hidden = false;
-    emptyEl.hidden = true;
-    footerEl.hidden = false;
-
-    itemsEl.innerHTML = CART.map(item => `
-        <div class="cart-item">
-            <img class="cart-item-img" src="${esc(item.image)}" alt="" loading="lazy"
-                 onerror="this.src='${placeholderImage()}'">
-            <div class="cart-item-info">
-                <h4 class="cart-item-name">${esc(item.name)}</h4>
-                ${item.options ? `<span class="cart-item-options">${esc(item.options)}</span>` : ""}
-                <span class="cart-item-price">${esc(money(item.price))} each</span>
-                <div class="qty">
-                    <button type="button" data-qty-dec="${esc(item.key)}" aria-label="Decrease">−</button>
-                    <span>${item.qty}</span>
-                    <button type="button" data-qty-inc="${esc(item.key)}" aria-label="Increase">+</button>
-                </div>
-            </div>
-            <div class="cart-item-side">
-                <span class="cart-item-subtotal">${esc(money(item.price * item.qty))}</span>
-                <button type="button" class="cart-item-remove" data-remove="${esc(item.key)}">Remove</button>
-            </div>
-        </div>
-    `).join("");
-
-    totalEl.textContent = money(cartTotal());
-
-    const hint = $("#cart-hint");
-    if (!BUSINESS.whatsapp) {
-        $("#cart-send").disabled = true;
-        hint.textContent = "Sending is unavailable — no WhatsApp number set.";
-    } else {
-        $("#cart-send").disabled = false;
-        hint.textContent = BUSINESS.orderInstruction || "";
-    }
-}
-
-
-function openCart() {
-    const drawer = $("#cart-drawer");
-    if (!drawer) return;
-
-    renderCart();
-    drawer.hidden = false;
-    document.body.classList.add("cart-open");
-
-    lastFocused = document.activeElement;
-
-    requestAnimationFrame(() => drawer.classList.add("active"));
-
-    if (!HISTORY.cart) {
-        history.pushState({ layer: "cart" }, "");
-        HISTORY.cart = true;
-    }
-
-    setTimeout(() => $("#cart-close").focus(), 120);
-}
-
-
-function closeCart() {
-    if (!HISTORY.cart) {
-        closeCartInternal();
-        return;
-    }
-    history.back();
-}
-
-
-function closeCartInternal() {
-    const drawer = $("#cart-drawer");
-    if (!drawer || drawer.hidden) return;
-
-    drawer.classList.remove("active");
-    document.body.classList.remove("cart-open");
-    HISTORY.cart = false;
-
-    setTimeout(() => { drawer.hidden = true; }, 320);
-
-    if (lastFocused && typeof lastFocused.focus === "function") {
-        lastFocused.focus();
-        lastFocused = null;
-    }
-}
-
-
-/* =========================================================
-   SEND ORDER (buildWhatsAppLink)
-========================================================= */
-function sendOrder() {
-    if (!CART.length) return;
-    if (!BUSINESS.whatsapp) return;
-
-    const name = $("#cart-name").value.trim();
-    const note = $("#cart-note").value.trim();
-
-    const cartForLink = CART.map(i => ({
-        name: i.name,
-        price: i.price,
-        qty: i.qty,
-        options: i.options || ""
-    }));
-
-    const url = buildWhatsAppLink(BUSINESS, cartForLink, name, note);
-    window.open(url, "_blank");
-}
-
-
-/* =========================================================
-   EVENTS
-========================================================= */
-function bindEvents() {
-    const search = $("#search-input");
-    let searchTimer = null;
-    search.addEventListener("input", () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
-            VIEW.search = search.value;
-            renderProducts();
-        }, 140);
-    });
-
-    $("#sort-select").addEventListener("change", e => {
-        VIEW.sort = e.target.value;
-        renderProducts();
-    });
-
-    $("#cart-btn").addEventListener("click", openCart);
-    $("#cart-close").addEventListener("click", closeCart);
-
-    $("#modal-close").addEventListener("click", closeModal);
-    $("[data-close-modal]").addEventListener("click", closeModal);
-    $("[data-close-cart]").addEventListener("click", closeCart);
-
-    $("#modal-add").addEventListener("click", () => {
-        const p = MODAL.product;
-        if (!p || p.available === false) return;
-        const required = requiredFieldsFor(p);
-        const missing = required.filter(f => !MODAL.selections[f.key]);
-        if (missing.length) return;
-
-        const options = buildOptionsString(p, MODAL.selections);
-        addToCart(p, options);
-        closeModal();
-        setTimeout(openCart, 200);
-    });
-
-    $("#cart-send").addEventListener("click", sendOrder);
-
-    document.addEventListener("click", handleDocumentClick);
-
-    document.addEventListener("keydown", e => {
-        if (e.key === "Escape") {
-            if (HISTORY.modal) closeModal();
-            else if (HISTORY.cart) closeCart();
-        }
-    });
-
-    window.addEventListener("popstate", () => {
-        if (HISTORY.modal) { closeModalInternal(); return; }
-        if (HISTORY.cart)  { closeCartInternal();  return; }
-    });
-}
-
-
-function handleDocumentClick(e) {
-    const quick = e.target.closest("[data-quick-add]");
-    if (quick) {
-        e.stopPropagation();
-        const id = quick.dataset.quickAdd;
-        const product = PRODUCTS.find(p => String(p.id) === String(id));
-        if (!product || product.available === false) return;
-
-        const required = requiredFieldsFor(product);
-        if (required.length) {
-            openModal(product);
-            return;
-        }
-
-        addToCart(product, "");
-        showToast("Added to cart");
-        return;
-    }
-
-    const card = e.target.closest(".card");
-    if (card) {
-        const id = card.dataset.productId;
-        const product = PRODUCTS.find(p => String(p.id) === String(id));
-        if (product) openModal(product);
-        return;
-    }
-
-    const inc = e.target.closest("[data-qty-inc]");
-    if (inc) {
-        changeQty(inc.dataset.qtyInc, 1);
-        return;
-    }
-    const dec = e.target.closest("[data-qty-dec]");
-    if (dec) {
-        changeQty(dec.dataset.qtyDec, -1);
-        return;
-    }
-    const rem = e.target.closest("[data-remove]");
-    if (rem) {
-        removeFromCart(rem.dataset.remove);
-        return;
-    }
-}
-
-
-/* =========================================================
-   TOAST
-========================================================= */
-function showToast(message) {
-    const el = $("#toast");
-    el.textContent = message;
-    el.hidden = false;
-    requestAnimationFrame(() => el.classList.add("show"));
-
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        el.classList.remove("show");
-        setTimeout(() => { el.hidden = true; }, 320);
-    }, 1800);
-}
-
-
-/* =========================================================
-   LOADER / OFFLINE
-========================================================= */
-function showLoader() {
-    const l = $("#loader");
-    if (l) l.classList.remove("done");
-}
-
-
-function hideLoader() {
-    const l = $("#loader");
-    if (l) l.classList.add("done");
-}
-
-
-function showOffline() {
-    const o = $("#offline");
-    if (o) o.hidden = false;
-}
-
-
-function hideOffline() {
-    const o = $("#offline");
-    if (o) o.hidden = true;
-}
+    const hint = $("#modal
