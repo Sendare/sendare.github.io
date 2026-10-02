@@ -335,7 +335,6 @@ function productCardHTML(p) {
     const cat = p.category || "";
     const available = p.available !== false;
     const images = p._images.slice(0, CARD_IMAGE_LIMIT);
-    const totalImages = p._images.length;
 
     const badges = [];
     if (!available) badges.push(`<span class="badge out">Sold out</span>`);
@@ -357,11 +356,6 @@ function productCardHTML(p) {
         `<span class="${i === 0 ? "active" : ""}"></span>`
     ).join("");
 
-    /* Show hint only when there is more than one photo */
-    const hintHTML = totalImages > 1
-        ? `<span class="card-hint">Tap image to see all ${totalImages} photos</span>`
-        : "";
-
     return `
         <article class="card" data-product-id="${esc(p.id)}" tabindex="0" role="button" aria-label="${esc(name)}">
             <div class="card-media">
@@ -379,7 +373,6 @@ function productCardHTML(p) {
                 <span class="card-cat">${esc(cat)}</span>
                 <h3 class="card-name">${esc(name)}</h3>
                 <div class="card-price">${priceHTML}</div>
-                ${hintHTML}
             </div>
         </article>
     `;
