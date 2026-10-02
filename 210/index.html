@@ -148,8 +148,9 @@ textarea{min-height:92px;resize:vertical}
 'use strict';
 
 const BUCKET = 'product-images';
-const MAX_PHOTOS = 10;
+const MAX_PHOTOS = Infinity;
 const app = document.getElementById('app');
+
 
 if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
   app.innerHTML = '<div class="center"><p>Set your Supabase URL and key in data.js first.</p></div>';
