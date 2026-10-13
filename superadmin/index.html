@@ -113,6 +113,19 @@ pre.msg{white-space:pre-wrap;word-break:break-word;background:var(--bg);border-r
 'use strict';
 
 const BUCKET = 'product-images';
+
+/* Customers sign in with their shop name. We turn it into a hidden email. */
+const LOGIN_DOMAIN = 'algotred.pages.dev';
+function toLoginEmail(input) {
+  const s = String(input || '').trim();
+  if (s.includes('@')) return s.toLowerCase();
+  const name = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').slice(0, 60);
+  return name ? name + '@' + LOGIN_DOMAIN : '';
+}
+function loginDisplay(email) {
+  const suffix = '@' + LOGIN_DOMAIN;
+  return email && email.endsWith(suffix) ? email.slice(0, -suffix.length) : (email || 'Unknown login');
+}
 const app = document.getElementById('app');
 if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
   app.innerHTML = '<div class="center"><p>Set your Supabase URL and key in data.js first.</p></div>';
@@ -121,7 +134,7 @@ if (typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.includes('YOUR-')) {
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const state = { user: null, businesses: [], links: [], fields: [], query: '' };
-let sheetEl = null, detailId = null, newFields = [], slugTouched = false, lastResult = '';
+let sheetEl = null, detailId = null, newFields = [], slugTouched = false, loginTouched = false, lastResult = '';
 
 /* ---------- helpers ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -248,6 +261,7 @@ function chipHTML(label, checked) {
 
 function openNew() {
   slugTouched = false;
+  loginTouched = false;
   newFields = [];
   openSheet(`
     <div class="panel-head"><h2>New customer</h2><button class="link" data-act="close">Close</button></div>
@@ -272,7 +286,7 @@ function openNew() {
       </div>
 
       <h3 class="section-title">Owner login</h3>
-      <label class="field"><span>Email</span><input type="email" id="nc-email" autocapitalize="none" autocomplete="off"></label>
+      <label class="field"><span>Login name</span><input type="text" id="nc-login" autocapitalize="none" autocomplete="off" spellcheck="false"><small>The owner types this to sign in. Capital letters and spaces do not matter. You can also enter a real email.</small></label>
       <label class="field"><span>Password</span>
         <div class="inline"><input type="text" id="nc-pass" autocomplete="off" autocapitalize="none"><button class="btn" type="button" data-act="gen">Generate</button></div>
         <small>At least 6 characters.</small></label>
@@ -300,7 +314,7 @@ async function createLogin(bizId, email, password) {
   const { data, error } = await tmp.auth.signUp({ email, password });
   if (error) throw error;
   const u = data.user;
-  if (!u || (u.identities && u.identities.length === 0)) throw new Error('That email already has an account. Use a different email.');
+  if (!u || (u.identities && u.identities.length === 0)) throw new Error('That login name is already used by another account. Choose a different one.');
   const { error: le } = await db.from('business_users').insert({ user_id: u.id, business_id: bizId, email });
   if (le) throw le;
   return { needsConfirm: !data.session };
@@ -308,12 +322,12 @@ async function createLogin(bizId, email, password) {
 
 async function createCustomer(btn) {
   const v = id => $('#' + id).value.trim();
-  const name = v('nc-name'), slug = v('nc-slug'), email = v('nc-email').toLowerCase(), pass = $('#nc-pass').value;
+  const name = v('nc-name'), slug = v('nc-slug'), loginRaw = v('nc-login'), email = toLoginEmail(loginRaw), pass = $('#nc-pass').value;
   const wa = normalizeWA(v('nc-wa'));
   if (!name) return toast('Enter the shop name.', true);
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return toast('Web name: lowercase letters, numbers and dashes only.', true);
   if (!wa) return toast('Enter the WhatsApp number.', true);
-  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a valid owner email.', true);
+  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a login name for the owner.', true);
   if (pass.length < 6) return toast('Password must be at least 6 characters.', true);
 
   btn.disabled = true; btn.textContent = 'Creating…';
@@ -334,7 +348,7 @@ async function createCustomer(btn) {
     const res = await createLogin(bizId, email, pass);
     await loadAll();
     paintList();
-    showResult(b, email, pass, res.needsConfirm);
+    showResult(b, loginRaw, pass, res.needsConfirm);
   } catch (err) {
     if (bizId) await db.from('businesses').delete().eq('id', bizId);
     fail(err);
@@ -342,9 +356,10 @@ async function createCustomer(btn) {
   }
 }
 
-function showResult(b, email, pass, needsConfirm) {
+function showResult(b, login, pass, needsConfirm) {
   const link = location.origin + '/admin/';
-  lastResult = `Hello! Your shop manager is ready.\n\nOpen: ${link}\nEmail: ${email}\nPassword: ${pass}\n\nUse it to add products, change prices, and mark items sold out.`;
+  const isName = !String(login).includes('@');
+  lastResult = `Hello! Your shop manager is ready.\n\nOpen: ${link}\n${isName ? 'Shop name' : 'Email'}: ${login}${isName ? ' (capital letters and spaces do not matter)' : ''}\nPassword: ${pass}\n\nUse it to add products, change prices, and mark items sold out.`;
   setSheet(`
     <div class="panel-head"><h2>${esc(b.name)} is created</h2><button class="link" data-act="close">Close</button></div>
     <div class="panel-body">
@@ -383,10 +398,10 @@ async function paintDetail(first) {
       <div class="inline"><input type="text" readonly value='const SHOP_SLUG = "${esc(b.slug)}";' aria-label="Site code"><button class="btn" data-act="copy-slug">Copy</button></div>
 
       <h3 class="section-title">Logins</h3>
-      ${links.length ? links.map(l => `<div class="item"><div><strong>${esc(l.email || 'Unknown email')}</strong><span>${l.user_id === state.user.id ? 'You' : 'Owner'}</span></div><button class="btn small danger" data-act="unlink" data-uid="${l.user_id}">Remove</button></div>`).join('') : '<p class="muted">No logins yet.</p>'}
+      ${links.length ? links.map(l => `<div class="item"><div><strong>${esc(loginDisplay(l.email))}</strong><span>${l.user_id === state.user.id ? 'You' : 'Owner'}</span></div><button class="btn small danger" data-act="unlink" data-uid="${l.user_id}">Remove</button></div>`).join('') : '<p class="muted">No logins yet.</p>'}
       <div class="box">
         <strong>Add a login</strong>
-        <label class="field" style="margin-top:8px"><span>Email</span><input type="email" id="al-email" autocapitalize="none" autocomplete="off"></label>
+        <label class="field" style="margin-top:8px"><span>Login name</span><input type="text" id="al-email" value="${esc(b.name)}" autocapitalize="none" autocomplete="off" spellcheck="false"><small>Shop name or a real email. Capitals and spaces do not matter.</small></label>
         <div class="inline"><input type="text" id="al-pass" placeholder="Password" autocomplete="off" autocapitalize="none"><button class="btn" data-act="gen-al">Generate</button></div>
         <button class="btn primary block" style="margin-top:10px" data-act="add-login">Create login</button>
       </div>
@@ -424,15 +439,15 @@ async function setActive(checked, input) {
 }
 
 async function addLogin(btn) {
-  const email = $('#al-email').value.trim().toLowerCase(), pass = $('#al-pass').value;
-  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a valid email.', true);
+  const loginRaw = $('#al-email').value.trim(), email = toLoginEmail(loginRaw), pass = $('#al-pass').value;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('Enter a login name.', true);
   if (pass.length < 6) return toast('Password must be at least 6 characters.', true);
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
     const res = await createLogin(detailId, email, pass);
     await loadAll(); paintList();
     const b = state.businesses.find(x => x.id === detailId);
-    showResult(b, email, pass, res.needsConfirm);
+    showResult(b, loginRaw, pass, res.needsConfirm);
   } catch (e) { fail(e); btn.disabled = false; btn.textContent = 'Create login'; }
 }
 
@@ -523,6 +538,8 @@ document.addEventListener('input', e => {
   if (t.id === 'search') { state.query = t.value; paintList(); }
   if (t.id === 'nc-name' && !slugTouched) $('#nc-slug').value = slugify(t.value);
   if (t.id === 'nc-slug') slugTouched = true;
+  if (t.id === 'nc-name' && !loginTouched) $('#nc-login').value = t.value.trim();
+  if (t.id === 'nc-login') loginTouched = true;
 });
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetEl) requestClose(); });

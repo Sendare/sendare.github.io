@@ -167,6 +167,15 @@ textarea{min-height:92px;resize:vertical}
 'use strict';
 
 const BUCKET = 'product-images';
+
+/* Customers sign in with their shop name. We turn it into a hidden email. */
+const LOGIN_DOMAIN = 'algotred.pages.dev';
+function toLoginEmail(input) {
+  const s = String(input || '').trim();
+  if (s.includes('@')) return s.toLowerCase();
+  const name = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '').slice(0, 60);
+  return name ? name + '@' + LOGIN_DOMAIN : '';
+}
 const MAX_PHOTOS = Infinity;
 const app = document.getElementById('app');
 
@@ -254,7 +263,7 @@ function renderLogin(msg = '') {
     <h1>Shop manager</h1>
     <p class="sub">Sign in to update your products, prices, and photos.</p>
     <form id="login-form">
-      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Shop name or email</span><input type="text" name="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required><small>Capital letters and spaces do not matter.</small></label>
       <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
       <p class="err" id="login-err">${esc(msg)}</p>
       <button class="btn primary block" type="submit">Sign in</button>
@@ -264,8 +273,8 @@ function renderLogin(msg = '') {
     e.preventDefault();
     const f = e.target, btn = f.querySelector('button');
     btn.disabled = true; btn.textContent = 'Signing in…';
-    const { data, error } = await db.auth.signInWithPassword({ email: f.email.value.trim(), password: f.password.value });
-    if (error) { $('#login-err').textContent = 'Wrong email or password.'; btn.disabled = false; btn.textContent = 'Sign in'; return; }
+    const { data, error } = await db.auth.signInWithPassword({ email: toLoginEmail(f.email.value), password: f.password.value });
+    if (error) { $('#login-err').textContent = 'Wrong shop name or password.'; btn.disabled = false; btn.textContent = 'Sign in'; return; }
     loadAccount(data.user);
   });
 }

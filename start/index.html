@@ -103,12 +103,7 @@ input.bad,textarea.bad{border-color:var(--danger);background:#FFF6F5}
     <label class="field"><span>A website you admire (optional)</span><input type="text" id="inspo" autocapitalize="none"></label>
   </section>
 
-  <section>
-    <h2>Your login</h2>
-    <label class="field"><span>Email for your shop manager <b class="req">*</b></span><input type="email" id="email" autocapitalize="none" autocomplete="email"><small>You will use this to add products and change prices.</small></label>
-  </section>
-
-  <div class="note" style="margin-bottom:14px"><b>After you send:</b> in the same WhatsApp chat, please also send your <b>logo</b> and <b>5 to 10 products</b> with clear photos, the name, and the price of each. Photos cannot be attached from this form.</div>
+  <div class="note" style="margin-bottom:14px"><b>After you send:</b> in the same WhatsApp chat, please also send your <b>logo</b> and <b>5 to 10 products</b> with clear photos, the name, and the price of each. Photos cannot be attached from this form. I will send you a password, and you will sign in with your shop name.</div>
 
   <p class="err" id="err" role="alert"></p>
   <button class="btn primary" type="submit">Send on WhatsApp</button>
@@ -129,7 +124,7 @@ const MY_WHATSAPP = "234XXXXXXXXXX";
 const PAY = ['Bank transfer', 'Cash', 'POS', 'Pay on delivery'];
 const DETAILS = ['Size', 'Colour', 'Material', 'Weight', 'Flavour', 'Brand'];
 const $ = id => document.getElementById(id);
-const IDS = ['name','tagline','about','location','hours','wa','phone','ig','fb','tt','maps','delivery','currency','cats','colors','inspo','email'];
+const IDS = ['name','tagline','about','location','hours','wa','phone','ig','fb','tt','maps','delivery','currency','cats','colors','inspo'];
 const KEY = 'onboard_draft_v1';
 
 function chip(group, label, checked) {
@@ -214,9 +209,6 @@ function buildMessage() {
     line(15, 'Colours', val('colors')),
     line(16, 'Website I admire', val('inspo')),
     '',
-    '*LOGIN*',
-    line(17, 'Email', val('email').toLowerCase()),
-    '',
     'I will send my logo and product photos next.'
   ].join('\n');
 }
@@ -230,10 +222,9 @@ $('f').addEventListener('submit', e => {
   const problems = [];
   if (!val('name')) problems.push('name');
   if (normalizeWA(val('wa')).length < 10) problems.push('wa');
-  if (!/^\S+@\S+\.\S+$/.test(val('email'))) problems.push('email');
   if (problems.length) {
     problems.forEach(i => $(i).classList.add('bad'));
-    $('err').textContent = 'Please fill the shop name, a valid WhatsApp number, and your email.';
+    $('err').textContent = 'Please fill the shop name and a valid WhatsApp number.';
     $(problems[0]).focus();
     return;
   }
