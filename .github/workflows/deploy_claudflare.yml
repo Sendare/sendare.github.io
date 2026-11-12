@@ -19,5 +19,4 @@ jobs:                                               deploy:
           command: pages deploy . --project-name=algotred
 
 
-~/cl/.github/workflows $
 
